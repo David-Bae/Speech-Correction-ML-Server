@@ -9,4 +9,12 @@ This repository hosts the inference server for the "올발음" project, a speech
 
 ### Docker Image
 
-This project uses the pre-configured Docker image `suhwan99/huggingface-fastapi`, which includes all necessary dependencies such as Hugging Face libraries, FastAPI, and Python modules.
+`suhwan99/huggingface-fastapi`
+- GPU 사용
+```bash
+docker run -d --gpus all -p 8000:8000 --name fastapi-gpu -v $(pwd):/workspace suhwan99/huggingface-fastapi:latest
+```
+- CPU 사용
+```bash
+docker run -d -p 8000:8000 --name fastapi-cpu -v $(pwd):/workspace suhwan99/huggingface-fastapi:latest
+```
