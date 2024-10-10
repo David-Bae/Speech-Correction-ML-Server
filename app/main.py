@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 
 #* working directory: /workspace
 from app.hangul2ipa.worker import hangul2ipa
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 #! Config 파일로 빼야할 듯. 서버의 하이퍼 파라미터.
-MODEL_CHECKPOINT = "/workspace/app/models/checkpoint-10818"
+MODEL_VERSION = "v2"
 
 
 @asynccontextmanager
@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     global IPA_ASR_MODEL #! 전역 IPA-ASR 모델
     
     logger.info("Service is starting...")
-    IPA_ASR_MODEL = load_asr_model(MODEL_CHECKPOINT)
+    IPA_ASR_MODEL = load_asr_model(MODEL_VERSION)
     logger.info("Model loaded successfully.")
     
     yield
@@ -94,3 +94,18 @@ def give_feedback(
         "frequency_analysis_image": FileResponse(frequency_analysis_image),
         "feedback_data": response_data
     }
+    
+
+@app.post("/model-inference")
+def model_inference(
+    audio: UploadFile = File(...),
+    text: str = Form(...)
+):
+    #* Convert Audio and Text to IPA in parallel
+    with ThreadPoolExecutor() as executor:
+        ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, audio)
+        ipa_correct = executor.submit(hangul2ipa, text)
+    ipa_sample = ipa_sample.result()
+    ipa_correct = ipa_correct.result()
+    
+    return {"Result": ipa_sample, "Correct": ipa_correct}

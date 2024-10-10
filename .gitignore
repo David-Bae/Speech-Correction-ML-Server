@@ -1,5 +1,7 @@
 demo/
 
+# Ignore all .pyc files in the root and subdirectories
 *.pyc
 
-app/models/
+# Optionally, ignore __pycache__ directories, which commonly contain .pyc files
+__pycache__/
