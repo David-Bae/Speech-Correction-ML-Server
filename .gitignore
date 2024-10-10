@@ -2,4 +2,4 @@ demo/
 
 *.pyc
 
- app/models/
+app/models/
