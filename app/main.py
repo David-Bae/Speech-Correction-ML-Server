@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-#! Config 파일로 빼야할 듯. 서버의 하이퍼 파라미터.
+#! 모델 버전 지정.
 MODEL_VERSION = "v2"
 
 
