@@ -55,6 +55,6 @@ OpenAI Audio API를 호출하여
 IPA에 대한 피드백을 반환.
 ? 아직 매개변수는 미정.
 """
-def get_speech_feedback_gpt():
+def get_pronunciation_feedback_gpt():
     dummy_feedback = "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요."
     return dummy_feedback

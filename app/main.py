@@ -8,7 +8,8 @@ from app.hangul2ipa.worker import hangul2ipa
 # from app.models.model_loader import load_asr_model
 # from app.feedback import get_asr_inference
 from app.util import convert_any_to_wav, encode_image_to_base64
-from app.feedback.speech_feedback import get_speech_feedback
+from app.feedback.pronunciation_feedback import get_pronunciation_feedback
+from app.feedback.intonation_feedback import get_intonation_feedback
 
 #* Debugging
 from datetime import datetime, timedelta, timezone
@@ -59,36 +60,24 @@ async def give_feedback(
     #* Convert Audio and Text to IPA in parallel
     with ThreadPoolExecutor() as executor:
         # ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, wav_audio_data) #? Huggingface Model
-        speech_feedback = executor.submit(get_speech_feedback, wav_audio_data, text)
-        frequency_feedback = None   #! Frequency Feedback 함수 추가 예정.
-                                                 
-    speech_feedback = speech_feedback.result()
-    frequency_feedback = frequency_feedback #.result()
-
-
-    """
-    TODO: 반환값
-    1. 문장에서 틀린 부분 표시  : [0, 3] (list) - 1번째 단어와 4번쨰 단어가 틀림
-    2. 발화의 정확도           : 93.2 (float) - 100점 만점
-    3. 문자 피드백             : 'ㅏ'를 발음할 때, 입모양을 더 크게 하세요. (string)
-    4. 구강구조 이미지         : 이미지 1개
-    5. 주파수 영역 분석 이미지  : 이미지 1개
-    6. 주파수 영역 피드백       : (string)
-    """
+        pronunciation_feedback = executor.submit(get_pronunciation_feedback, wav_audio_data, text)
+        intonation_feedback = executor.submit(get_intonation_feedback, wav_audio_data)
+    pronunciation_feedback = pronunciation_feedback.result()
+    intonation_feedback = intonation_feedback.result()
     
-    
-    frequency_analysis_image_path = "/workspace/app/images/frequency_feedback.png"
-    frequency_feedback = "질문하는 상황에서는 마지막 부분을 올리세요."
     
     #! 이미지를 Base64로 Encoding
-    speech_feedback['speech_feedback_image'] = encode_image_to_base64(speech_feedback['image_path'])
-    del speech_feedback['image_path']
+    pronunciation_feedback['pronunciation_feedback_image'] = encode_image_to_base64(pronunciation_feedback['image_path'])
+    del pronunciation_feedback['image_path']
+    
+    intonation_feedback['intonation_feedback_image'] = encode_image_to_base64(intonation_feedback['image_path'])
+    del intonation_feedback['image_path']
     
     # frequency_analysis_image_base64 = encode_image_to_base64(frequency_analysis_image_path)
 
     return {
-        "speech_feedback": speech_feedback,
-        "frequency_feedback": None
+        "pronunciation_feedback": pronunciation_feedback,
+        "intonation_feedback": intonation_feedback
     }
     
 
