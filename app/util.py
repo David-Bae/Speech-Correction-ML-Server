@@ -7,7 +7,12 @@ from io import BytesIO
 import base64
 
 
+
 def convert_any_to_wav(audio_data: BytesIO, filename) -> BytesIO:
+    """
+    다양한 format의 BytesIO를 wav format의 BytesIO로 변환
+    """
+
     if filename.endswith(".3gp"):
         wav_audio_data = convert_3gp_to_wav(audio_data)
     elif filename.endswith(".wav"):

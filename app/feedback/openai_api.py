@@ -14,12 +14,13 @@ PROMPT_KO = """
 """
 
 
-"""
-OpenAI Audio API를 호출하여
-음성 파일에 들어있는 한국어 발화를
-들리는 대로 전사(한글)하여 반환.
-"""
 def get_asr_gpt(audio_data:BytesIO):
+    """
+    OpenAI Audio API를 호출하여
+    음성 파일에 들어있는 한국어 발화를
+    들리는 대로 전사(한글)하여 반환.
+    """
+
     audio_file_base64 = base64.b64encode(audio_data.read()).decode('utf-8')
     
     response = client.chat.completions.create(
@@ -49,12 +50,13 @@ def get_asr_gpt(audio_data:BytesIO):
 
 
 
-"""
-OpenAI Audio API를 호출하여
-한글과 IPA를 입력받고,
-IPA에 대한 피드백을 반환.
-? 아직 매개변수는 미정.
-"""
 def get_pronunciation_feedback_gpt():
+    """
+    OpenAI Audio API를 호출하여
+    한글과 IPA를 입력받고,
+    IPA에 대한 피드백을 반환.
+    ? 아직 매개변수는 미정.
+    """
+    
     dummy_feedback = "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요."
     return dummy_feedback
