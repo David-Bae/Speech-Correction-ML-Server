@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 
 from pydub import AudioSegment
 from io import BytesIO
+import base64
 
 
 def convert_any_to_wav(audio_data: BytesIO, filename) -> BytesIO:
@@ -13,9 +14,6 @@ def convert_any_to_wav(audio_data: BytesIO, filename) -> BytesIO:
         wav_audio_data = audio_data
         
     return wav_audio_data
-
-
-
 
 
 def convert_3gp_to_wav(three_gp_data: BytesIO) -> BytesIO:
@@ -37,3 +35,9 @@ def convert_3gp_to_wav(three_gp_data: BytesIO) -> BytesIO:
     wav_data.seek(0)  # 파일 포인터를 처음 위치로 이동
     
     return wav_data
+
+
+
+def encode_image_to_base64(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")

@@ -8,7 +8,7 @@ from io import BytesIO
 from app.hangul2ipa.worker import hangul2ipa
 from app.models.model_loader import load_asr_model
 from app.feedback import get_asr_inference
-from app.util import convert_any_to_wav
+from app.util import convert_any_to_wav, encode_image_to_base64
 
 #* Debugging
 import logging
@@ -86,9 +86,13 @@ async def give_feedback(
     incorrect_word_indices = [0, 3] 
     accuracy_score = 93.2
     speech_feedback = "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요."
-    oral_structure_image = "/workspace/app/images/oral_feedback.png"
-    frequency_analysis_image = "/workspace/app/images/frequency_feedback.png"
+    oral_structure_image_path = "/workspace/app/images/oral_feedback.png"
+    frequency_analysis_image_path = "/workspace/app/images/frequency_feedback.png"
     frequency_feedback = "질문하는 상황에서는 마지막 부분을 올리세요."
+    
+    #! 이미지를 Base64로 Encoding
+    oral_structure_image_base64 = encode_image_to_base64(oral_structure_image_path)
+    frequency_analysis_image_base64 = encode_image_to_base64(frequency_analysis_image_path)
 
     response_data = {
         "incorrect_word_indices": incorrect_word_indices,
@@ -98,8 +102,8 @@ async def give_feedback(
     }
 
     return {
-        "oral_structure_image": FileResponse(oral_structure_image),
-        "frequency_analysis_image": FileResponse(frequency_analysis_image),
+        "oral_structure_image": oral_structure_image_base64,
+        "frequency_analysis_image": frequency_analysis_image_base64,
         "feedback_data": response_data
     }
     
