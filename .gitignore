@@ -5,3 +5,8 @@ demo/
 
 # Optionally, ignore __pycache__ directories, which commonly contain .pyc files
 __pycache__/
+
+dockerfile_legacy.txt
+environment_legacy.yml
+
+.env
