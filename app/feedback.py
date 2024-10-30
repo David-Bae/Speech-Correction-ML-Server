@@ -6,17 +6,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_asr_inference(model, audio):
+def get_asr_inference(model, audio_data: BytesIO):
     # librosa.load 함수는 파일 경로 or 파일 객체만 받음.
     # 따라서 audio는 파일 경로 or 파일 객체.
-    if isinstance(audio, str):
-        pass
-    else:
-        audio = BytesIO(audio.file.read())
-        
-    logger.info(f"{audio}")
+    # if isinstance(audio, str):
+    #     pass
+    # else:
+    #     audio = BytesIO(audio.file.read())
     
-    speech_array,_ = librosa.load(audio, sr=model.feature_extractor.sampling_rate)
+    speech_array,_ = librosa.load(audio_data, sr=model.feature_extractor.sampling_rate)
     
     result = model(speech_array)
     

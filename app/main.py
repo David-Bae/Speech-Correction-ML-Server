@@ -2,11 +2,13 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
 
 #* working directory: /workspace
 from app.hangul2ipa.worker import hangul2ipa
 from app.models.model_loader import load_asr_model
 from app.feedback import get_asr_inference
+from app.util import convert_any_to_wav
 
 #* Debugging
 import logging
@@ -39,13 +41,19 @@ def index():
 
 
 @app.post("/get-feedback")
-def give_feedback(
+async def give_feedback(
     audio: UploadFile = File(...),
     text: str = Form(...)
-):
+):        
+    #! 먼저 audio 파일을 BytesIO 형태로 변환    
+    audio_data = BytesIO(audio.file.read())
+    
+    #! audio 파일 format을 wav로 변환
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+    
     #* Convert Audio and Text to IPA in parallel
     with ThreadPoolExecutor() as executor:
-        ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, audio)
+        ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, wav_audio_data)
         ipa_correct = executor.submit(hangul2ipa, text)                                                         
     ipa_sample = ipa_sample.result()
     ipa_correct = ipa_correct.result()
@@ -101,9 +109,15 @@ def model_inference(
     audio: UploadFile = File(...),
     text: str = Form(...)
 ):
+    #! 먼저 audio 파일을 BytesIO 형태로 변환    
+    audio_data = BytesIO(audio.file.read())
+    
+    #! audio 파일 format을 wav로 변환
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+    
     #* Convert Audio and Text to IPA in parallel
     with ThreadPoolExecutor() as executor:
-        ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, audio)
+        ipa_sample = executor.submit(get_asr_inference, IPA_ASR_MODEL, wav_audio_data)
         ipa_correct = executor.submit(hangul2ipa, text)
     ipa_sample = ipa_sample.result()
     ipa_correct = ipa_correct.result()
