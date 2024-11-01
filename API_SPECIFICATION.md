@@ -62,8 +62,5 @@ Content-Type: multipart/form-data
 - **intonation_feedback** (`String`):
   - 억양에 대한 피드백.
 
-- **intonation_score** (`float`):
-  - 억양 정확도.
-
 - **intonation_feedback_image** (`Base64`):
   - 억양 분석을 위해 주파수 영역으로 변환한 이미지

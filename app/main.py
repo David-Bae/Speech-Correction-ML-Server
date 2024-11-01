@@ -55,21 +55,21 @@ async def give_feedback(
 ):
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환   
     audio_data = BytesIO(audio.file.read())
-    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)    
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
 
 
     #* pronunciation(발음) & intonation(억양) 피드백 병렬로 생성
     with ThreadPoolExecutor() as executor:
-        #* A. pronunciation(발음) 피드백 생성
+        #! A. pronunciation(발음) 피드백 생성
         pronunciation_feedback = executor.submit(get_pronunciation_feedback, wav_audio_data, text)
-        #* B. intonation(억양) 피드백 생성
+        #! B. intonation(억양) 피드백 생성
         intonation_feedback = executor.submit(get_intonation_feedback, wav_audio_data)
 
     pronunciation_feedback = pronunciation_feedback.result()
     intonation_feedback = intonation_feedback.result()
     
     
-    #! 이미지를 Base64로 Encoding
+    #* 이미지를 Base64로 Encoding
     pronunciation_feedback['pronunciation_feedback_image'] = encode_image_to_base64(pronunciation_feedback['image_path'])
     del pronunciation_feedback['image_path']
     

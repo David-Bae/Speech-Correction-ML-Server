@@ -4,6 +4,7 @@
 
 from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
+from difflib import SequenceMatcher
 
 
 
@@ -16,6 +17,11 @@ def get_pronunciation_feedback(audio_data, hangul):
     
     ipa_standard = hangul2ipa(hangul)
     ipa_user = hangul2ipa(transcription)
+    
+    logger.info("*"*50)
+    logger.info(f"문장 IPA  : {ipa_standard}")
+    logger.info(f"사용자 IPA: {ipa_user}")
+    logger.info("*"*50)
     
     #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
     pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt()
@@ -34,9 +40,18 @@ def get_pronunciation_feedback(audio_data, hangul):
     return feedback
 
 
-def calculate_pronunciation_score(ipa_standard, ipa_user):
-    dummy_score = 93.2
-    return dummy_score
+def calculate_pronunciation_score(original_ipa, user_ipa):
+    """
+    Levenshtein 거리 기반으로 유사도 점수를 계산하는 함수
+    0 ~ 100 사이의 실수(소수점 아래 둘째자리) 반환
+    """
+    matcher = SequenceMatcher(None, original_ipa, user_ipa)
+    
+    match_ratio = matcher.ratio()
+    
+    pronunciation_score = round(match_ratio*100, 2)
+    
+    return pronunciation_score
 
 
 

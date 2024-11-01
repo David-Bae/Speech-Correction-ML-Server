@@ -10,7 +10,6 @@ def get_intonation_feedback(audio_data):
     
     feedback = {
         "intonation_feedback": intonation_feedback,
-        "intonation_score": intonation_score,
         "image_path": frequency_analysis_image_path
     }
     
