@@ -1,6 +1,11 @@
 from openai import OpenAI
 import base64
 from io import BytesIO
+from app.feedback.util import compare_ipa_with_word_index
+from jamo import h2j, j2hcj
+
+import logging
+logger = logging.getLogger(__name__)
 
 client = OpenAI()
 
@@ -50,13 +55,51 @@ def get_asr_gpt(audio_data:BytesIO):
 
 
 
-def get_pronunciation_feedback_gpt():
+import pandas as pd
+IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
+MO_PRONUNCIATION_INSTRUCTION = pd.read_csv('/workspace/app/feedback/table/mo_pronunciation_instructions.csv')
+
+ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
+MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
+MO_HANGUL = list(IPA2KO['Korean'][32:])
+MO_INSTRUCTION = dict(zip(MO_PRONUNCIATION_INSTRUCTION['Mo'], MO_PRONUNCIATION_INSTRUCTION['Instruction']))
+
+
+def get_pronunciation_feedback_prompt(errors, standard_hangul):
+    prompt = None
+    standard_hangul_words = standard_hangul.split(" ")
+    
+    for error in errors:
+        word_id, standard_ipa, user_ipa = error
+        
+        if standard_ipa in MO:
+            error_word = standard_hangul_words[word_id]
+            
+            error_word_last_jamo = j2hcj(h2j(standard_hangul_words[word_id]))[-1]
+            if error_word_last_jamo in MO_HANGUL:
+                josa = '를'
+            else:
+                josa = '을'
+                
+            prompt = f"""'{error_word}'{josa} 발음할 때, '{MO[user_ipa]}'를 '{MO[standard_ipa]}'로 발음하세요.
+{MO_INSTRUCTION[MO[standard_ipa]]}
+{MO_INSTRUCTION[MO[user_ipa]]}
+            """            
+            break
+        
+    return prompt
+
+
+def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul):
     """
     OpenAI Audio API를 호출하여
     한글과 IPA를 입력받고,
     IPA에 대한 피드백을 반환.
     ? 아직 매개변수는 미정.
     """
+    errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
+    logger.info(f"Difference : {errors}")
     
-    dummy_feedback = "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요."
-    return dummy_feedback
+    feedback = get_pronunciation_feedback_prompt(errors, standard_hangul)
+    
+    return feedback

@@ -24,8 +24,8 @@ def get_pronunciation_feedback(audio_data, hangul):
     logger.info("*"*50)
     
     #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
-    pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt()
-    oral_structure_image_path = "/workspace/app/images/oral_feedback.png"
+    pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt(ipa_standard, ipa_user, hangul)     #! 구현 필요
+    oral_structure_image_path = "/workspace/app/images/oral_feedback.png"    #! 구현 필요
     
     #! 발화 점수 계산
     pronunciation_score = calculate_pronunciation_score(ipa_standard, ipa_user)
@@ -52,6 +52,12 @@ def calculate_pronunciation_score(original_ipa, user_ipa):
     pronunciation_score = round(match_ratio*100, 2)
     
     return pronunciation_score
+
+
+
+
+
+
 
 
 

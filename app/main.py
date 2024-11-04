@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
 #* working directory: /workspace
-from app.hangul2ipa.worker import hangul2ipa
 # from app.models.model_loader import load_asr_model
 # from app.feedback import get_asr_inference
 from app.util import convert_any_to_wav, encode_image_to_base64
@@ -53,7 +52,7 @@ async def give_feedback(
     audio: UploadFile = File(...),
     text: str = Form(...)
 ):
-    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환   
+    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
 
