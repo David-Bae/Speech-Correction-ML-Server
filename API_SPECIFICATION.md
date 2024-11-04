@@ -27,16 +27,12 @@ Content-Type: multipart/form-data
 ## Response
 ```json
 {
-    "pronunciation_feedback": {
-        "transcription": "나는 행보카게 끝나는 뇽화가 조따.",
-        "pronunciation_feedback": "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요.",
-        "pronunciation_score": 93.2,
-        "pronunciation_feedback_image": "image_base64"
-    },
-    "intonation_feedback": {
-        "intonation_feedback": "질문하는 상황에서는 마지막 부분을 올리세요.",
-        "intonation_feedback_image": "image_base64"
-    }
+    "transcription": "나는 행보카게 끝나는 뇽화가 조따.",
+    "pronunciation_feedback": "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요.",
+    "pronunciation_score": 93.2,
+    "intonation_feedback": "질문하는 상황에서는 마지막 부분을 올리세요.",
+    "pronunciation_feedback_image": "image_base64",
+    "intonation_feedback_image": "image_base64"
 }
 ```
 
