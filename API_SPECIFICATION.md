@@ -35,7 +35,6 @@ Content-Type: multipart/form-data
     },
     "intonation_feedback": {
         "intonation_feedback": "질문하는 상황에서는 마지막 부분을 올리세요.",
-        "intonation_score": 77.3,
         "intonation_feedback_image": "image_base64"
     }
 }
