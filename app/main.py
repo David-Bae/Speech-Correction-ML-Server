@@ -68,18 +68,82 @@ async def give_feedback(
     intonation_feedback = intonation_feedback.result()
     
     
-    #* 이미지를 Base64로 Encoding
-    pronunciation_feedback['pronunciation_feedback_image'] = encode_image_to_base64(pronunciation_feedback['image_path'])
-    del pronunciation_feedback['image_path']
+    # #* 이미지를 Base64로 Encoding
+    # pronunciation_feedback['pronunciation_feedback_image'] = "multipartfile image"# encode_image_to_base64(pronunciation_feedback['image_path'])
+    # del pronunciation_feedback['image_path']
     
-    intonation_feedback['intonation_feedback_image'] = encode_image_to_base64(intonation_feedback['image_path'])
-    del intonation_feedback['image_path']
+    # intonation_feedback['intonation_feedback_image'] = "multipartfile image"# encode_image_to_base64(intonation_feedback['image_path'])
+    # del intonation_feedback['image_path']
     
 
-    return {
-        "pronunciation_feedback": pronunciation_feedback,
-        "intonation_feedback": intonation_feedback
+    # return {
+    #     "pronunciation_feedback": pronunciation_feedback,
+    #     "intonation_feedback": intonation_feedback
+    # }
+    
+        # 이미지 파일 읽기
+    with open(pronunciation_feedback['image_path'], "rb") as f:
+        pronunciation_feedback_image_data = f.read()
+
+    with open(intonation_feedback['image_path'], "rb") as f:
+        intonation_feedback_image_data = f.read()
+
+    # 고유한 boundary 설정
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+
+    # multipart 응답 바디를 바이너리로 초기화
+    multipart_body = b""
+
+    # 파트 추가를 위한 헬퍼 함수 정의
+    def add_text_part(name, content):
+        nonlocal multipart_body
+        part = (
+            f'--{boundary}\r\n'
+            f'Content-Disposition: form-data; name="{name}"\r\n'
+            f'Content-Type: text/plain; charset=utf-8\r\n\r\n'
+            f'{content}\r\n'
+        ).encode('utf-8')
+        multipart_body += part
+
+    def add_file_part(name, filename, content, content_type):
+        nonlocal multipart_body
+        part_header = (
+            f'--{boundary}\r\n'
+            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+            f'Content-Type: {content_type}\r\n\r\n'
+        ).encode('utf-8')
+        multipart_body += part_header
+        multipart_body += content  # 이미지 바이너리 데이터 추가
+        multipart_body += b'\r\n'
+
+    # 텍스트 파트 추가
+    add_text_part('transcription', pronunciation_feedback['transcription'])
+    add_text_part('pronunciation_feedback', pronunciation_feedback['pronunciation_feedback'])
+    add_text_part('pronunciation_score', str(pronunciation_feedback['pronunciation_score']))
+    add_text_part('intonation_feedback', intonation_feedback['intonation_feedback'])
+
+    # 이미지 파트 추가
+    add_file_part('pronunciation_feedback_image', 'pronunciation_feedback_image.png', pronunciation_feedback_image_data, 'image/png')
+    add_file_part('intonation_feedback_image', 'intonation_feedback_image.png', intonation_feedback_image_data, 'image/png')
+
+    # 마지막 boundary 추가
+    multipart_body += f'--{boundary}--\r\n'.encode('utf-8')
+
+    # 응답 헤더 설정
+    headers = {
+        'Content-Type': f'multipart/form-data; boundary={boundary}'
     }
+
+    # 응답 반환
+    return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -116,3 +180,75 @@ def pronunciation_asr_gpt(
 #     ipa_correct = ipa_correct.result()
     
 #     return {"Result": ipa_sample, "Correct": ipa_correct}
+
+
+from fastapi import FastAPI, Response
+import mimetypes
+
+@app.get("/feedback")
+def get_feedback():
+    # 텍스트 데이터 준비
+    transcription = "나는 행복하게 끝나는 용화가 조따."
+    pronunciation_feedback = "'영화가'를 발음할 때, 'ㅕ' 발음이 'ㅛ'로 들려요. ..."
+    pronunciation_score = 95.12
+    intonation_feedback = "질문하는 상황에서는 마지막 부분을 올리세요."
+
+    # 이미지 파일 경로 설정
+    pronunciation_feedback_image_path = "/workspace/app/images/oral_feedback.png"
+    intonation_feedback_image_path = "/workspace/app/images/frequency_feedback.png"
+
+    # 이미지 파일 읽기
+    with open(pronunciation_feedback_image_path, "rb") as f:
+        pronunciation_feedback_image_data = f.read()
+
+    with open(intonation_feedback_image_path, "rb") as f:
+        intonation_feedback_image_data = f.read()
+
+    # 고유한 boundary 설정
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+
+    # multipart 응답 바디를 바이너리로 초기화
+    multipart_body = b""
+
+    # 파트 추가를 위한 헬퍼 함수 정의
+    def add_text_part(name, content):
+        nonlocal multipart_body
+        part = (
+            f'--{boundary}\r\n'
+            f'Content-Disposition: form-data; name="{name}"\r\n'
+            f'Content-Type: text/plain; charset=utf-8\r\n\r\n'
+            f'{content}\r\n'
+        ).encode('utf-8')
+        multipart_body += part
+
+    def add_file_part(name, filename, content, content_type):
+        nonlocal multipart_body
+        part_header = (
+            f'--{boundary}\r\n'
+            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+            f'Content-Type: {content_type}\r\n\r\n'
+        ).encode('utf-8')
+        multipart_body += part_header
+        multipart_body += content  # 이미지 바이너리 데이터 추가
+        multipart_body += b'\r\n'
+
+    # 텍스트 파트 추가
+    add_text_part('transcription', transcription)
+    add_text_part('pronunciation_feedback', pronunciation_feedback)
+    add_text_part('pronunciation_score', str(pronunciation_score))
+    add_text_part('intonation_feedback', intonation_feedback)
+
+    # 이미지 파트 추가
+    add_file_part('pronunciation_feedback_image', 'pronunciation_feedback_image.png', pronunciation_feedback_image_data, 'image/png')
+    add_file_part('intonation_feedback_image', 'intonation_feedback_image.png', intonation_feedback_image_data, 'image/png')
+
+    # 마지막 boundary 추가
+    multipart_body += f'--{boundary}--\r\n'.encode('utf-8')
+
+    # 응답 헤더 설정
+    headers = {
+        'Content-Type': f'multipart/form-data; boundary={boundary}'
+    }
+
+    # 응답 반환
+    return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
