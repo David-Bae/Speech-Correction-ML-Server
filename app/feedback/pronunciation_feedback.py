@@ -12,23 +12,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_pronunciation_feedback(audio_data, hangul):
+def get_pronunciation_feedback(audio_data, standard_hangul):
     transcription = openai_api.get_asr_gpt(audio_data)
     
-    ipa_standard = hangul2ipa(hangul)
-    ipa_user = hangul2ipa(transcription)
+    standard_ipa = hangul2ipa(standard_hangul)
+    user_ipa = hangul2ipa(transcription)
     
     logger.info("*"*50)
-    logger.info(f"문장 IPA  : {ipa_standard}")
-    logger.info(f"사용자 IPA: {ipa_user}")
+    logger.info(f"문장 IPA  : {standard_ipa}")
+    logger.info(f"사용자 IPA: {user_ipa}")
     logger.info("*"*50)
     
     #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
-    pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt(ipa_standard, ipa_user, hangul)     #! 구현 필요
+    pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)     #! 구현 필요
     oral_structure_image_path = "/workspace/app/images/oral_feedback.png"    #! 구현 필요
     
     #! 발화 점수 계산
-    pronunciation_score = calculate_pronunciation_score(ipa_standard, ipa_user)
+    pronunciation_score = calculate_pronunciation_score(standard_ipa, user_ipa)
     
     feedback = {
         "transcription": transcription,

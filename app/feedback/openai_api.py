@@ -57,49 +57,86 @@ def get_asr_gpt(audio_data:BytesIO):
 
 import pandas as pd
 IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
-MO_PRONUNCIATION_INSTRUCTION = pd.read_csv('/workspace/app/feedback/table/mo_pronunciation_instructions.csv')
-
 ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
 MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
 MO_HANGUL = list(IPA2KO['Korean'][32:])
-MO_INSTRUCTION = dict(zip(MO_PRONUNCIATION_INSTRUCTION['Mo'], MO_PRONUNCIATION_INSTRUCTION['Instruction']))
 
-
-def get_pronunciation_feedback_prompt(errors, standard_hangul):
-    prompt = None
-    standard_hangul_words = standard_hangul.split(" ")
+MO_INSTRUCTION = None
+with open("/workspace/app/feedback/table/mo_pronunciation_instruction.txt", "r") as file:
+    MO_INSTRUCTION = file.read()
     
-    for error in errors:
-        word_id, standard_ipa, user_ipa = error
-        
-        if standard_ipa in MO:
-            error_word = standard_hangul_words[word_id]
-            
-            error_word_last_jamo = j2hcj(h2j(standard_hangul_words[word_id]))[-1]
-            if error_word_last_jamo in MO_HANGUL:
-                josa = '를'
-            else:
-                josa = '을'
-                
-            prompt = f"""'{error_word}'{josa} 발음할 때, '{MO[user_ipa]}'를 '{MO[standard_ipa]}'로 발음하세요.
-{MO_INSTRUCTION[MO[standard_ipa]]}
-{MO_INSTRUCTION[MO[user_ipa]]}
-            """            
-            break
-        
-    return prompt
+# MO_PRONUNCIATION_INSTRUCTION = pd.read_csv('/workspace/app/feedback/table/mo_pronunciation_instructions.csv')
+# MO_INSTRUCTION = dict(zip(MO_PRONUNCIATION_INSTRUCTION['Mo'], MO_PRONUNCIATION_INSTRUCTION['Instruction']))
 
 
-def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul):
+
+def get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, standard_mo, user_mo):
+    role = """당신은 한국어 발음 교정 전문가입니다.
+항상 친절하고, 상대방이 쉽게 이해할 수 있도록 명확하고 친근하게 설명해 주세요.
+"""
+    
+    prompt = f"""사용자가 '{standard_word}'를 '{user_word}'라고 발음했어요.
+즉 '{standard_mo}'을 '{user_mo}'로 발음했는데, 아래의 모음 발음 방법을 참고하여 피드백을 해주세요.
+- 피드백은 5문장 이내로 작성하고, '{standard_word}'을(를) 발음할때, '{standard_mo}' 발음이 '{user_mo}' 로 들려요. 로 시작해주세요.
+-'{user_mo}'에서 '{standard_mo}'로 교정하기 위한 발음 방법을 중심으로 설명해 주세요. (두 발음 방법 차이를 설명)
+- 이모티콘은 포함하지 않습니다.
+
+모음 발음 방법:
+{MO_INSTRUCTION}
+"""
+
+    return (role, prompt)
+
+
+def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user_hangul):
     """
     OpenAI Audio API를 호출하여
     한글과 IPA를 입력받고,
     IPA에 대한 피드백을 반환.
     ? 아직 매개변수는 미정.
     """
+    # 두 IPA를 비교하여 error를 찾음.
     errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
     logger.info(f"Difference : {errors}")
     
-    feedback = get_pronunciation_feedback_prompt(errors, standard_hangul)
+    # error가 없으면 종료.
+    if len(errors) == 0:
+        return "정확하게 발음했습니다!"
     
-    return feedback
+    #* 여러 error에 대한 feedback을 저장할 리스트.
+    feedbacks = []
+    
+    
+    standard_hangul_words = standard_hangul.split(" ")
+    user_hangul_words = user_hangul.split(" ")
+    
+    prompt = ""
+    
+    for error in errors:
+        word_id, standard_ipa, user_ipa = error
+        
+        #* error가 발생한 단어.
+        standard_word = standard_hangul_words[word_id]
+        user_word = user_hangul_words[word_id]
+        
+        if standard_ipa in MO:
+            role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, MO[standard_ipa], MO[user_ipa])
+            
+            feedback = client.chat.completions.create(
+                model="chatgpt-4o-latest",
+                messages=[
+                    {"role": "system", "content": role},
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+            
+            #! 아직 모음 피드백 하나만 반환.
+            return feedback.choices[0].message.content
+
+    if not prompt:
+        prompt = "아직 자음 피드백은 구현하지 않았습니다."
+    
+    return prompt
