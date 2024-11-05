@@ -93,7 +93,6 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
     OpenAI Audio API를 호출하여
     한글과 IPA를 입력받고,
     IPA에 대한 피드백을 반환.
-    ? 아직 매개변수는 미정.
     """
     # 두 IPA를 비교하여 error를 찾음.
     errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
@@ -119,7 +118,7 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
         standard_word = standard_hangul_words[word_id]
         user_word = user_hangul_words[word_id]
         
-        if standard_ipa in MO:
+        if (standard_ipa in MO) and (user_ipa in MO):
             role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, MO[standard_ipa], MO[user_ipa])
             
             feedback = client.chat.completions.create(
@@ -137,6 +136,4 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
             return feedback.choices[0].message.content
 
     if not prompt:
-        prompt = "아직 자음 피드백은 구현하지 않았습니다."
-    
-    return prompt
+        return "아직 자음 피드백은 구현하지 않았습니다."
