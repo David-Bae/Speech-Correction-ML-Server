@@ -27,7 +27,7 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
     
     #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
     pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)     #! 구현 필요
-    oral_structure_image_path = "/workspace/app/images/oral_feedback.png"    #! 구현 필요
+    oral_structure_image_path = "/workspace/app/images/요to여.png"    #! 구현 필요
     
     #! 발화 점수 계산
     pronunciation_score = calculate_pronunciation_score(standard_ipa, user_ipa)
