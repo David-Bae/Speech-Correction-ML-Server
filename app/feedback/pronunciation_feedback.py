@@ -13,14 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
-    transcription = openai_api.get_asr_gpt(audio_data)
+    transcription = openai_api.get_asr_gpt(audio_data, standard_hangul)
     
     standard_ipa = hangul2ipa(standard_hangul)
     user_ipa = hangul2ipa(transcription)
     
     logger.info("*"*50)
-    logger.info(f"문장 IPA  : {standard_ipa}")
-    logger.info(f"사용자 IPA: {user_ipa}")
+    logger.info(f"문장       : {standard_hangul}")
+    logger.info(f"사용자 발음: {transcription}")
+    logger.info(f"문장 IPA   : {standard_ipa}")
+    logger.info(f"사용자 IPA : {user_ipa}")
     logger.info("*"*50)
     
     #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
