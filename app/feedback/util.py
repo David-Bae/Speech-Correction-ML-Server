@@ -1,6 +1,9 @@
 from difflib import SequenceMatcher
 import pandas as pd
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def parse_ipa(ipa_input):
     ipas = pd.read_csv("/workspace/app/feedback/table/ipa2ko.csv")["IPA"].values
@@ -45,6 +48,9 @@ def compare_ipa_with_word_index(original_ipa, user_ipa):
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
             if tag != 'equal':
                 # word_index로 몇 번째 단어에서 차이가 발생했는지 표시
+                # logger.info(orig_word)
+                # logger.info(user_word)
+                
                 diff_with_word_index.append((word_index, orig_word[i1:i2][0], user_word[j1:j2][0]))
     
     return diff_with_word_index

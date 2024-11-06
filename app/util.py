@@ -4,6 +4,8 @@ logger = logging.getLogger(__name__)
 
 from pydub import AudioSegment
 from io import BytesIO
+import librosa
+import numpy as np
 # import base64
 
 
@@ -39,6 +41,21 @@ def convert_3gp_to_wav(three_gp_data: BytesIO) -> BytesIO:
     wav_data.seek(0)  # 파일 포인터를 처음 위치로 이동
     
     return wav_data
+
+
+def is_not_speaking(audio, threshold=0.01):
+    y,_ = librosa.load(audio, sr=None)
+    
+    # 오디오 신호의 에너지 계산
+    energy = np.sum(y ** 2) / len(y)
+    
+    # 에너지가 임계값보다 작으면 말이 없다고 판단
+    return energy < threshold
+
+
+
+
+
 
 
 #! Multi-Part로 변환하면서 사용 X

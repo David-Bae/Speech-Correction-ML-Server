@@ -1,16 +1,17 @@
-from fastapi import FastAPI, File, UploadFile, Form, Response
+from fastapi import FastAPI, File, UploadFile, Form, Response, HTTPException
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
 #* working directory: /workspace
-from app.util import convert_any_to_wav
+from app.util import convert_any_to_wav, is_not_speaking
 from app.feedback.pronunciation_feedback import get_pronunciation_feedback
 from app.feedback.intonation_feedback import get_intonation_feedback
 from app.feedback.openai_api import get_asr_gpt
 
 #* Debugging
 from datetime import datetime, timedelta, timezone
+import time
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +47,10 @@ async def give_feedback(
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+    
+    #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
+    if is_not_speaking(wav_audio_data):
+        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")    
 
     ########################################################################################################
     #! <Pronunciation & Intonation Feedback>
@@ -118,7 +123,30 @@ async def give_feedback(
     # 응답 반환
     return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
     
+
+"""
+! 개발중인 API
+! '/get-feedback' API의 인터페이스를 변경
+! intonation feedback 부분 제거
+! 반환 형태: Multipartfile -> Json (이미지와 피드백을 Spring 서버에 저장)
+"""
+@app.post("/get-pronunciation-feedback")
+async def give_feedback(
+    audio: UploadFile = File(...),
+    text: str = Form(...)
+):
+    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
+    audio_data = BytesIO(audio.file.read())
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+
+    #! pronunciation(발음) 피드백 생성
+    pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
     
+    return pronunciation_feedback
+
+
+
+
 @app.post("/get-feedback-test")
 async def give_feedback_for_test(
     audio: UploadFile = File(...),
@@ -129,21 +157,10 @@ async def give_feedback_for_test(
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
 
 
-    with ThreadPoolExecutor() as executor:
-        #! A. pronunciation(발음) 피드백 생성
-        pronunciation_feedback = executor.submit(get_pronunciation_feedback, wav_audio_data, text)
-        #! B. intonation(억양) 피드백 생성
-        intonation_feedback = executor.submit(get_intonation_feedback, wav_audio_data)
+    #! A. pronunciation(발음) 피드백 생성
+    pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
 
-    pronunciation_feedback = pronunciation_feedback.result()
-    intonation_feedback = intonation_feedback.result()
-
-
-    return {
-        "pronunciation_feedback": pronunciation_feedback,
-        "intonation_feedback": intonation_feedback
-    }
-    
+    return pronunciation_feedback
     
 
 @app.post("/model-inference")

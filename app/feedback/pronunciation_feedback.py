@@ -14,30 +14,40 @@ logger = logging.getLogger(__name__)
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
     transcription = openai_api.get_asr_gpt(audio_data, standard_hangul)
-    
-    standard_ipa = hangul2ipa(standard_hangul)
-    user_ipa = hangul2ipa(transcription)
-    
     logger.info("*"*50)
-    logger.info(f"문장       : {standard_hangul}")
-    logger.info(f"사용자 발음: {transcription}")
-    logger.info(f"문장 IPA   : {standard_ipa}")
-    logger.info(f"사용자 IPA : {user_ipa}")
+    logger.info(f"ASR 반환값: {transcription}")
     logger.info("*"*50)
-    
-    #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
-    pronunciation_feedback = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)     #! 구현 필요
-    oral_structure_image_path = "/workspace/app/images/요to여.png"    #! 구현 필요
-    
-    #! 발화 점수 계산
-    pronunciation_score = calculate_pronunciation_score(standard_ipa, user_ipa)
     
     feedback = {
-        "transcription": transcription,
-        "pronunciation_feedback": pronunciation_feedback,
-        "pronunciation_score": pronunciation_score,
-        "image_path": oral_structure_image_path
+        "transcription": None,
+        "pronunciation_feedback": None,
+        "pronunciation_score": None,
+        "image_path": None,
+        "error_code": 0
     }
+    
+    #? 사용자가 정상적인 발화를 했다면.
+    if transcription == '1':
+        feedback['error_code'] = 1
+    elif transcription == '2':
+        feedback['error_code'] = 2
+    else:
+        standard_ipa = hangul2ipa(standard_hangul)
+        user_ipa = hangul2ipa(transcription)
+        
+        logger.info("*"*50)
+        logger.info(f"문장       : {standard_hangul}")
+        logger.info(f"사용자 발음: {transcription}")
+        logger.info(f"문장 IPA   : {standard_ipa}")
+        logger.info(f"사용자 IPA : {user_ipa}")
+        logger.info("*"*50)
+        
+        #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
+        feedback["pronunciation_feedback"] = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)
+        feedback["oral_structure_image_path"] = "/workspace/app/images/요to여.png"
+        
+        #! 발화 점수 계산
+        feedback["pronunciation_score"] = calculate_pronunciation_score(standard_ipa, user_ipa)
     
     return feedback
 
