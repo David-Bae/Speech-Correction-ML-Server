@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
     transcription = openai_api.get_asr_gpt(audio_data, standard_hangul)
-    logger.info("*"*50)
-    logger.info(f"ASR 반환값: {transcription}")
-    logger.info("*"*50)
     
     feedback = {
         "transcription": None,
@@ -25,8 +22,6 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         "image_path": None,
         "error_code": 0
     }
-    
-    logger.info("여기까진 옴3")
     
     #? 사용자가 정상적인 발화를 했다면.
     if transcription == '1':
