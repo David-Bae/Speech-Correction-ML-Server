@@ -35,12 +35,21 @@ Content-Type: multipart/form-data
     "intonation_feedback_image": "image_base64"
 }
 ```
+### 422 Unprocessable Entity
+- 음성 파일의 목소리가 없거나 매우 작을 때.
+    ```json
+    {
+        "detail": "목소리를 인식하지 못했습니다."
+    }
+    ```
+- 주어진 문장과 다른 문장을 말했을 때.
+    ```json
+    {
+        "detail": "다른 문장을 발음했습니다."
+    }
+    ```
 
-반환 데이터는 두 개의 피드백(딕셔너리)로 구성됩니다.
-- "pronunciation_feedback"
-- "intonation_feedback"
-
-### pronunciation_feedback 항목 설명
+### Response 항목 설명
 - **transcription** (`String`):
   - 사용자의 발화를 발음 그대로 전사한 한글 텍스트.
 
@@ -50,12 +59,11 @@ Content-Type: multipart/form-data
 - **pronunciation_score** (`float`):
   - 발음 정확도.
 
-- **pronunciation_feedback_image** (`Base64`):
-  - 발음 피드백을 위한 구강구조 이미지.
-
-### intonation_feedback 항목 설명
 - **intonation_feedback** (`String`):
   - 억양에 대한 피드백.
+ 
+- **pronunciation_feedback_image** (`Base64`):
+  - 발음 피드백을 위한 구강구조 이미지.
 
 - **intonation_feedback_image** (`Base64`):
   - 억양 분석을 위해 주파수 영역으로 변환한 이미지
