@@ -43,11 +43,13 @@ def convert_3gp_to_wav(three_gp_data: BytesIO) -> BytesIO:
     return wav_data
 
 
-def is_not_speaking(audio, threshold=0.01):
+def is_not_speaking(audio, threshold=0.0001):
     y,_ = librosa.load(audio, sr=None)
     
     # 오디오 신호의 에너지 계산
     energy = np.sum(y ** 2) / len(y)
+    
+    logger.info(f"Energy: {energy}")
     
     # 에너지가 임계값보다 작으면 말이 없다고 판단
     return energy < threshold

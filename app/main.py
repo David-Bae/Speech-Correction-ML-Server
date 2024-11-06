@@ -48,9 +48,10 @@ async def give_feedback(
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
-    #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
+    # #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
+    # ! Demo 시연할 때, 반드시 아래 주석을 풀어야 함. 목소리도 크게 말해야 함.
     if is_not_speaking(wav_audio_data):
-        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")    
+        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")
 
     ########################################################################################################
     #! <Pronunciation & Intonation Feedback>
@@ -155,7 +156,10 @@ async def give_feedback_for_test(
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-
+    
+    #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
+    if is_not_speaking(wav_audio_data):
+        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")    
 
     #! A. pronunciation(발음) 피드백 생성
     pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
