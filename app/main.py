@@ -48,10 +48,12 @@ async def give_feedback(
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
+
     # #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
     # ! Demo 시연할 때, 반드시 아래 주석을 풀어야 함. 목소리도 크게 말해야 함.
-    if is_not_speaking(wav_audio_data):
-        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")
+    wav_audio_copy = BytesIO(wav_audio_data.getvalue()) #! librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
+    if is_not_speaking(wav_audio_copy):
+        raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
 
     ########################################################################################################
     #! <Pronunciation & Intonation Feedback>
@@ -64,6 +66,10 @@ async def give_feedback(
 
     pronunciation_feedback = pronunciation_feedback.result()
     intonation_feedback = intonation_feedback.result()
+    
+    #? 예외처리: 사용자가 다른 문장을 발화한 경우
+    if pronunciation_feedback['error_code'] == 1:
+        raise HTTPException(status_code=422, detail="다른 문장을 발음했습니다.")
 
     ########################################################################################################
     #! <Multi-part/form-data>

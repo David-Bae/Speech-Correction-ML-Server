@@ -26,11 +26,11 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         "error_code": 0
     }
     
+    logger.info("여기까진 옴3")
+    
     #? 사용자가 정상적인 발화를 했다면.
     if transcription == '1':
         feedback['error_code'] = 1
-    elif transcription == '2':
-        feedback['error_code'] = 2
     else:
         standard_ipa = hangul2ipa(standard_hangul)
         user_ipa = hangul2ipa(transcription)
