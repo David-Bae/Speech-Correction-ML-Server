@@ -49,8 +49,8 @@ async def give_feedback(
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
 
-    # #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
-    # ! Demo 시연할 때, 반드시 아래 주석을 풀어야 함. 목소리도 크게 말해야 함.
+    #! <NO_SPEECH>: 아무 말도 하지 않은 경우
+    #* Demo 시연할 때, 반드시 아래 주석을 풀어야 함. 목소리도 크게 말해야 함.
     wav_audio_copy = BytesIO(wav_audio_data.getvalue()) #! librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
     if is_not_speaking(wav_audio_copy):
         raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
@@ -67,19 +67,26 @@ async def give_feedback(
     pronunciation_feedback = pronunciation_feedback.result()
     intonation_feedback = intonation_feedback.result()
     
-    #? 예외처리: 사용자가 다른 문장을 발화한 경우
-    if pronunciation_feedback['status'] == FeedbackStatus.WRONG_SENTENCE:
+    status = pronunciation_feedback['status']
+    
+    #! <WRONG_SENTENCE>: 사용자가 다른 문장을 발화한 경우
+    if status == FeedbackStatus.WRONG_SENTENCE:
         raise HTTPException(status_code=422, detail="다른 문장을 발음했습니다.")
 
     ########################################################################################################
     #! <Multi-part/form-data>
     
-    # 이미지 파일 읽기
-    with open(pronunciation_feedback['image_path'], "rb") as f:
-        pronunciation_feedback_image_data = f.read()
+    #! <PRONUNCIATION_SUCCESS & NOT_IMPLEMENTED>: 문장을 정확히 발음하거나 아직 피드백 알고리즘이 구현되지 않은 경우.
+    if (status == FeedbackStatus.PRONUNCIATION_SUCCESS) or (status == FeedbackStatus.NOT_IMPLEMENTED):
+        pronunciation_feedback_image_data = None
+        intonation_feedback_image_data = None
+    else:
+        # 이미지 파일 읽기
+        with open(pronunciation_feedback['feedback_images'][0], "rb") as f:
+            pronunciation_feedback_image_data = f.read()
 
-    with open(intonation_feedback['image_path'], "rb") as f:
-        intonation_feedback_image_data = f.read()
+        with open(intonation_feedback['image_path'], "rb") as f:
+            intonation_feedback_image_data = f.read()
     
     #* 고유한 boundary 설정
     boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
@@ -100,16 +107,20 @@ async def give_feedback(
 
     def add_file_part(name, filename, content, content_type):
         nonlocal multipart_body
-        part_header = (
-            f'--{boundary}\r\n'
-            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
-            f'Content-Type: {content_type}\r\n\r\n'
-        ).encode('utf-8')
-        multipart_body += part_header
-        multipart_body += content  # 이미지 바이너리 데이터 추가
-        multipart_body += b'\r\n'
+        if content is None:  # 이미지 데이터가 없으면 "null"을 텍스트로 추가
+            add_text_part(name, "null")
+        else:
+            part_header = (
+                f'--{boundary}\r\n'
+                f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+                f'Content-Type: {content_type}\r\n\r\n'
+            ).encode('utf-8')
+            multipart_body += part_header
+            multipart_body += content  # 이미지 바이너리 데이터 추가
+            multipart_body += b'\r\n'
 
     # 텍스트 파트 추가
+    add_text_part('status', status)
     add_text_part('transcription', pronunciation_feedback['transcription'])
     add_text_part('pronunciation_feedback', pronunciation_feedback['pronunciation_feedback'])
     add_text_part('pronunciation_score', str(pronunciation_feedback['pronunciation_score']))

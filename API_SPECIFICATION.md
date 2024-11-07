@@ -27,10 +27,11 @@ Content-Type: multipart/form-data
 ## Response
 ```json
 {
+    "status": 2,
     "transcription": "나는 행보카게 끝나는 뇽화가 조따.",
     "pronunciation_feedback": "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요.",
     "pronunciation_score": 93.2,
-    "intonation_feedback": "질문하는 상황에서는 마지막 부분을 올리세요.",
+    "intonation_feedback": "삭제 예정",
     "pronunciation_feedback_image": "image_base64",
     "intonation_feedback_image": "image_base64"
 }
@@ -50,6 +51,11 @@ Content-Type: multipart/form-data
     ```
 
 ### Response 항목 설명
+- **status** (`String`):
+  - 1 : 정확한 발음. 피드백 & 입모양 사진 없음.
+  - 2 : 발음에 틀린 부분 있음. 피드백 & 입모양 사진 있음.
+  - 5 : 아직 구현 안된 부분. 피드백 & 입모양 사진 없음.
+
 - **transcription** (`String`):
   - 사용자의 발화를 발음 그대로 전사한 한글 텍스트.
 
