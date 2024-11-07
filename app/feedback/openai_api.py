@@ -144,7 +144,9 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
             user_word = user_hangul_words[word_id]
             
             if (standard_ipa in MO) and (user_ipa in MO):
-                role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, MO[standard_ipa], MO[user_ipa])
+                standard_mo = MO[standard_ipa]
+                user_mo = MO[user_ipa]
+                role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, standard_mo, user_mo)
                 
                 feedback = client.chat.completions.create(
                     model="chatgpt-4o-latest",
@@ -159,7 +161,8 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
                 
                 feedback_text = feedback.choices[0].message.content
                 feedbacks.append(feedback_text)
-                feedback_images.append("/workspace/app/images/요to여.png")
+                
+                feedback_images.append(f"/workspace/app/images/mo_transition/{standard_mo}_{user_mo}.jpg")
                 #! 아직 모음 피드백 하나만 반환.
                 break
         
