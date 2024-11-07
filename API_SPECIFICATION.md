@@ -43,6 +43,7 @@ Content-Type: multipart/form-data
         "detail": "목소리를 인식하지 못했습니다."
     }
     ```
+### 423 Unprocessable Entity
 - 주어진 문장과 다른 문장을 말했을 때.
     ```json
     {

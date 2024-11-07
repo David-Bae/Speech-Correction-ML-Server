@@ -71,7 +71,7 @@ async def give_feedback(
     
     #! <WRONG_SENTENCE>: 사용자가 다른 문장을 발화한 경우
     if status == FeedbackStatus.WRONG_SENTENCE:
-        raise HTTPException(status_code=422, detail="다른 문장을 발음했습니다.")
+        raise HTTPException(status_code=423, detail="다른 문장을 발음했습니다.")
 
     ########################################################################################################
     #! <Multi-part/form-data>
