@@ -113,9 +113,11 @@ def get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, stan
 
 def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user_hangul):
     """
-    OpenAI Audio API를 호출하여
-    한글과 IPA를 입력받고,
-    IPA에 대한 피드백을 반환.
+    <Role>
+        1. 두 IPA를 비교하여 틀린 부분 찾기 <- compare_ipa_with_word_index
+        2. 에러가 발생한 단어에 대해 피드백 문장 생성 <- get_mo_pronunciation_feedback_role_and_prompt #! 이 부분을 대체
+        3. 피드백 문장 번호와 이미지 번호 반환
+        
     *feedbacks: 각 틀린 부분에 대한 피드백 저장.
     *feedback_images: 각 틀린 부분에 대한 피드백 이미지 이름 저장. (이미지는 spring 서버에 있음)
     *status: FeedbackStatus - PRONUNCIATION_SUCCESS / FEEDBACK_PROVIDED / NOT_IMPLEMENTED

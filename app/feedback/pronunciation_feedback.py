@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
     """
+    <Role>
+        1. 오디오 파일에서 한국어 발화 전사. <- get_asr_gpt
+        2. 사용자가 다른 문장을 말한 경우 예외 처리.
+        3. 주어진 문장과 전사를 IPA로 변환.
+        4. 두 IPA 비교하여 피드백 문장 생성 <- get_pronunciation_feedback_gpt
+    
     *transcription: 한글 발음 전사 텍스트
     *pronunciation_feedback: 각 틀린 부분에 대한 피드백 저장.
     *pronunciation_score: 발음 점수
@@ -45,7 +51,7 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         logger.info(f"사용자 IPA : {user_ipa}")
         logger.info("*"*50)
         
-        #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
+        #! 변경해야됨: gpt에서 생성하는 것이 아닌 틀린 부분을 보고 어느 피드백을 반환해야할지 결정.
         response = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)
         
         pronunciation_feedback = response['feedbacks']
