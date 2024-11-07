@@ -3,6 +3,7 @@ import base64
 from io import BytesIO
 from app.feedback.util import compare_ipa_with_word_index
 from jamo import h2j, j2hcj
+from app.util import FeedbackStatus
 
 import logging
 logger = logging.getLogger(__name__)
@@ -79,7 +80,6 @@ def get_asr_gpt(audio_data:BytesIO, standard_hangul:str):
     return response.choices[0].message.content
 
 
-
 import pandas as pd
 IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
 ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
@@ -116,47 +116,60 @@ def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user
     OpenAI Audio API를 호출하여
     한글과 IPA를 입력받고,
     IPA에 대한 피드백을 반환.
+    *feedbacks: 각 틀린 부분에 대한 피드백 저장.
+    *feedback_images: 각 틀린 부분에 대한 피드백 이미지 이름 저장. (이미지는 spring 서버에 있음)
+    *status: FeedbackStatus - PRONUNCIATION_SUCCESS / FEEDBACK_PROVIDED / NOT_IMPLEMENTED
     """
+    #* 여러 error에 대한 feedback과 image 이름을 저장할 리스트.
+    feedbacks = []
+    feedback_images = []
+    status = FeedbackStatus.PRONUNCIATION_SUCCESS
+    
     # 두 IPA를 비교하여 error를 찾음.
     errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
     logger.info(f"Difference : {errors}")
     
-    # error가 없으면 종료.
-    if len(errors) == 0:
-        return "정확하게 발음했습니다!"
-    
-    #* 여러 error에 대한 feedback을 저장할 리스트.
-    feedbacks = []
-    
-    
-    standard_hangul_words = standard_hangul.split(" ")
-    user_hangul_words = user_hangul.split(" ")
-    
-    prompt = ""
-    
-    for error in errors:
-        word_id, standard_ipa, user_ipa = error
+    # error가 1개 이상이면 피드백 생성
+    if len(errors) > 0:
+        standard_hangul_words = standard_hangul.split(" ")
+        user_hangul_words = user_hangul.split(" ")
         
-        #* error가 발생한 단어.
-        standard_word = standard_hangul_words[word_id]
-        user_word = user_hangul_words[word_id]
+        for error in errors:
+            word_id, standard_ipa, user_ipa = error
+            
+            #* error가 발생한 단어.
+            standard_word = standard_hangul_words[word_id]
+            user_word = user_hangul_words[word_id]
+            
+            if (standard_ipa in MO) and (user_ipa in MO):
+                role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, MO[standard_ipa], MO[user_ipa])
+                
+                feedback = client.chat.completions.create(
+                    model="chatgpt-4o-latest",
+                    messages=[
+                        {"role": "system", "content": role},
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                
+                feedback_text = feedback.choices[0].message.content
+                feedbacks.append(feedback_text)
+                feedback_images.append("/workspace/app/images/요to여.png")
+                #! 아직 모음 피드백 하나만 반환.
+                break
         
-        if (standard_ipa in MO) and (user_ipa in MO):
-            role, prompt = get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, MO[standard_ipa], MO[user_ipa])
-            
-            feedback = client.chat.completions.create(
-                model="chatgpt-4o-latest",
-                messages=[
-                    {"role": "system", "content": role},
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            )
-            
-            #! 아직 모음 피드백 하나만 반환.
-            return feedback.choices[0].message.content
+        # 피드백을 정상적으로 생성한 경우
+        if len(feedbacks) > 0:
+            status = FeedbackStatus.FEEDBACK_PROVIDED
+        # 에러는 있지만 피드백을 생성하지 못한 경우
+        else:
+            status = FeedbackStatus.NOT_IMPLEMENTED
 
-    if not prompt:
-        return "아직 자음 피드백은 구현하지 않았습니다."
+    return {
+        "feedbacks": feedbacks,
+        "feedback_images": feedback_images,
+        "status": status
+    }

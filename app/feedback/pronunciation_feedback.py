@@ -5,6 +5,7 @@
 from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
 from difflib import SequenceMatcher
+from app.util import FeedbackStatus
 
 
 
@@ -13,20 +14,27 @@ logger = logging.getLogger(__name__)
 
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
+    """
+    *transcription: 한글 발음 전사 텍스트
+    *pronunciation_feedback: 각 틀린 부분에 대한 피드백 저장.
+    *pronunciation_score: 발음 점수
+    *feedback_images: 각 틀린 부분에 대한 피드백 이미지 이름 저장. (이미지는 spring 서버에 있음)
+    *status: FeedbackStatus (app.feedback.util.py)
+    """
+    transcription = "한글 발음 전사"
+    pronunciation_feedback = []
+    pronunciation_score = 0.0
+    feedback_images = []
+    status = FeedbackStatus.PRONUNCIATION_SUCCESS
+    
+    
     transcription = openai_api.get_asr_gpt(audio_data, standard_hangul)
-    
-    feedback = {
-        "transcription": None,
-        "pronunciation_feedback": None,
-        "pronunciation_score": None,
-        "image_path": None,
-        "error_code": 0
-    }
-    
-    #? 사용자가 정상적인 발화를 했다면.
+
     if transcription == '1':
-        feedback['error_code'] = 1
+    #? 사용자가 다른 문장을 말했다면.
+        status = FeedbackStatus.WRONG_SENTENCE
     else:
+    #? 사용자가 주어진 문장을 말했다면.
         standard_ipa = hangul2ipa(standard_hangul)
         user_ipa = hangul2ipa(transcription)
         
@@ -38,13 +46,20 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         logger.info("*"*50)
         
         #! ipa_standard와 ipa_user 비교하여 feedback 하는 함수 호출
-        feedback["pronunciation_feedback"] = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)
-        feedback["oral_structure_image_path"] = "/workspace/app/images/요to여.png"
+        response = openai_api.get_pronunciation_feedback_gpt(standard_ipa, user_ipa, standard_hangul, transcription)
         
-        #! 발화 점수 계산
-        feedback["pronunciation_score"] = calculate_pronunciation_score(standard_ipa, user_ipa)
+        pronunciation_feedback = response['feedbacks']
+        feedback_images = response['feedback_images']
+        status = response['status']
+        pronunciation_score = calculate_pronunciation_score(standard_ipa, user_ipa)
     
-    return feedback
+    return{
+        "transcription": transcription,
+        "pronunciation_feedback": pronunciation_feedback,
+        "pronunciation_score": pronunciation_score,
+        "feedback_images": feedback_images,
+        "status": status
+    }
 
 
 def calculate_pronunciation_score(original_ipa, user_ipa):

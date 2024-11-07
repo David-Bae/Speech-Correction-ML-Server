@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
 #* working directory: /workspace
-from app.util import convert_any_to_wav, is_not_speaking
+from app.util import convert_any_to_wav, is_not_speaking, FeedbackStatus
 from app.feedback.pronunciation_feedback import get_pronunciation_feedback
 from app.feedback.intonation_feedback import get_intonation_feedback
 from app.feedback.openai_api import get_asr_gpt
@@ -68,7 +68,7 @@ async def give_feedback(
     intonation_feedback = intonation_feedback.result()
     
     #? 예외처리: 사용자가 다른 문장을 발화한 경우
-    if pronunciation_feedback['error_code'] == 1:
+    if pronunciation_feedback['status'] == FeedbackStatus.WRONG_SENTENCE:
         raise HTTPException(status_code=422, detail="다른 문장을 발음했습니다.")
 
     ########################################################################################################

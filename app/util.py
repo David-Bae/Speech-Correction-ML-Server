@@ -8,6 +8,13 @@ import librosa
 import numpy as np
 # import base64
 
+class FeedbackStatus:
+    PRONUNCIATION_SUCCESS = 1   # 틀린 부분 없음
+    FEEDBACK_PROVIDED = 2       # 피드백 생성
+    NO_SPEECH = 3               # 말이 없음
+    WRONG_SENTENCE = 4          # 다른 문장 발음
+    NOT_IMPLEMENTED = 5         # 아직 구현 안됨
+
 
 def convert_any_to_wav(audio_data: BytesIO, filename) -> BytesIO:
     """
