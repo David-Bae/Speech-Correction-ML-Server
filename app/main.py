@@ -142,129 +142,129 @@ async def give_feedback(
     return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
     
 
-# """
-# ! 개발중인 API
-# ! '/get-feedback' API의 인터페이스를 변경
-# ! intonation feedback 부분 제거
-# ! 반환 형태: Multipartfile -> Json (이미지와 피드백을 Spring 서버에 저장)
-# """
-# @app.post("/get-pronunciation-feedback")
-# async def give_pronunciation_feedback(
-#     audio: UploadFile = File(...),
-#     text: str = Form(...) 
-# ):
-#     """
-#     사용자의 발음(pronunciation)을 분석하여 틀린 부분을 교정하는 피드백을 반환하는 API
+"""
+! 개발중인 API
+! '/get-feedback' API의 인터페이스를 변경
+! intonation feedback 부분 제거
+! 반환 형태: Multipartfile -> Json (이미지와 피드백을 Spring 서버에 저장)
+"""
+@app.post("/get-pronunciation-feedback")
+async def give_pronunciation_feedback(
+    audio: UploadFile = File(...),
+    text: str = Form(...) 
+):
+    """
+    사용자의 발음(pronunciation)을 분석하여 틀린 부분을 교정하는 피드백을 반환하는 API
     
-#     Returns:
-#     -------
-#     JSON:
-#         * status : FeedbackStatus (int)
-#             Feedback 수행 상태를 나타내는 변수. app/util.py의 FeedbackStatus 클래스를 참고.
+    Returns:
+    -------
+    JSON:
+        * status : FeedbackStatus (int)
+            Feedback 수행 상태를 나타내는 변수. app/util.py의 FeedbackStatus 클래스를 참고.
         
-#         * transcription : str
-#             오디오 파일을 들리는대로 전사한 한글 텍스트.
+        * transcription : str
+            오디오 파일을 들리는대로 전사한 한글 텍스트.
         
-#         * feedback_count : int
-#             생성된 피드백 개수. 'word_index', 'pronunciation_feedbacks', 'feedback_image_names', 'wrong_spellings' 리스트의 개수와 동일.
+        * feedback_count : int
+            생성된 피드백 개수. 'word_index', 'pronunciation_feedbacks', 'feedback_image_names', 'wrong_spellings' 리스트의 개수와 동일.
         
-#         * word_index : list
-#             몇번쨰 단어에서 틀렸는지 나타내는 인덱스를 포함하는 리스트.
+        * word_index : list
+            몇번쨰 단어에서 틀렸는지 나타내는 인덱스를 포함하는 리스트.
         
-#         * pronunciation_feedbacks : list
-#             발음 교정 피드백 텍스트를 포함하는 리스트.
+        * pronunciation_feedbacks : list
+            발음 교정 피드백 텍스트를 포함하는 리스트.
         
-#         * feedback_image_names : list
-#             발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트. 사진들은 S3에 저장됨.
+        * feedback_image_names : list
+            발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트. 사진들은 S3에 저장됨.
         
-#         * wrong_spellings : list
-#             틀린 철자들 리스트.
+        * wrong_spellings : list
+            틀린 철자들 리스트.
         
-#         * pronunciation_score : float
-#             사용자 발음을 평가한 점수.
+        * pronunciation_score : float
+            사용자 발음을 평가한 점수.
 
-#     Example Response:
-#     -----------------
-#     {
-#         "status": 1,
-#         "transcription": "나는 행복하게 끝나는 용화가 좋다.",
-#         "feedback_count": 2,
-#         "word_index": [3, 5],
-#         "pronunciation_feedbacks": ["feedback1", "feedback2"],
-#         "feedback_image_names": ["image1.png", "image2.png"],
-#         "wrong_spellings": ["ㅕ", "ㅈ"],
-#         "pronunciation_score": 0.85
-#     }
-#     """
+    Example Response:
+    -----------------
+    {
+        "status": 1,
+        "transcription": "나는 행복하게 끝나는 용화가 좋다.",
+        "feedback_count": 2,
+        "word_index": [3, 5],
+        "pronunciation_feedbacks": ["feedback1", "feedback2"],
+        "feedback_image_names": ["image1.png", "image2.png"],
+        "wrong_spellings": ["ㅕ", "ㅈ"],
+        "pronunciation_score": 0.85
+    }
+    """
     
-#     #* <반환값>
-#     status = FeedbackStatus.PRONUNCIATION_SUCCESS
-#     transcription = ""
-#     feedback_count = 0
-#     word_index = []
-#     pronunciation_feedbacks = []    #? ML서버에 저장
-#     feedback_image_names = []       #? S3에 저장
-#     wrong_spellings = []
-#     pronunciation_score = 0.0
+    #* <반환값>
+    status = FeedbackStatus.PRONUNCIATION_SUCCESS
+    transcription = ""
+    feedback_count = 0
+    word_index = []
+    pronunciation_feedbacks = []    #? ML서버에 저장
+    feedback_image_names = []       #? S3에 저장
+    wrong_spellings = []
+    pronunciation_score = 0.0
     
     
-#     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-#     audio_data = BytesIO(audio.file.read())
-#     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-    
-
-#     #! <NO_SPEECH>: 아무 말도 하지 않은 경우
-#     wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
-#     if is_not_speaking(wav_audio_copy):
-#         raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
-
-    
-#     #* <Pronunciation Feedback>
-#     pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
-    
-#     status = pronunciation_feedback['status']
-    
-#     #! <WRONG_SENTENCE>: 사용자가 다른 문장을 발화한 경우
-#     if status == FeedbackStatus.WRONG_SENTENCE:
-#         raise HTTPException(status_code=423, detail="다른 문장을 발음했습니다.")
-
-#     ########################################################################################################
-#     #! <PRONUNCIATION_SUCCESS & NOT_IMPLEMENTED>: 문장을 정확히 발음하거나 아직 피드백 알고리즘이 구현되지 않은 경우.
-#     if (status == FeedbackStatus.PRONUNCIATION_SUCCESS) or (status == FeedbackStatus.NOT_IMPLEMENTED):
-#         pronunciation_feedback_image_data = None
-    
-#     return 
-
-
-
-
-# @app.post("/get-feedback-test")
-# async def give_feedback_for_test(
-#     audio: UploadFile = File(...),
-#     text: str = Form(...) 
-# ):
-#     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-#     audio_data = BytesIO(audio.file.read())
-#     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-    
-#     #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
-#     if is_not_speaking(wav_audio_data):
-#         raise HTTPException(status_code=422, detail="No speech detected in the audio file.")    
-
-#     #! A. pronunciation(발음) 피드백 생성
-#     pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
-
-#     return pronunciation_feedback
+    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
+    audio_data = BytesIO(audio.file.read())
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
 
-# @app.post("/model-inference")
-# def pronunciation_asr_gpt(
-#     audio: UploadFile = File(...)
-# ):
-#     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환   
-#     audio_data = BytesIO(audio.file.read())
-#     wav_audio_data = convert_any_to_wav(audio_data, audio.filename) 
+    #! <NO_SPEECH>: 아무 말도 하지 않은 경우
+    wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
+    if is_not_speaking(wav_audio_copy):
+        raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
+
     
-#     transcription = get_asr_gpt(wav_audio_data)
+    #* <Pronunciation Feedback>
+    pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
     
-#     return {"Result": transcription}
+    status = pronunciation_feedback['status']
+    
+    #! <WRONG_SENTENCE>: 사용자가 다른 문장을 발화한 경우
+    if status == FeedbackStatus.WRONG_SENTENCE:
+        raise HTTPException(status_code=423, detail="다른 문장을 발음했습니다.")
+
+    ########################################################################################################
+    #! <PRONUNCIATION_SUCCESS & NOT_IMPLEMENTED>: 문장을 정확히 발음하거나 아직 피드백 알고리즘이 구현되지 않은 경우.
+    if (status == FeedbackStatus.PRONUNCIATION_SUCCESS) or (status == FeedbackStatus.NOT_IMPLEMENTED):
+        pronunciation_feedback_image_data = None
+    
+    return 
+
+
+
+
+@app.post("/get-feedback-test")
+async def give_feedback_for_test(
+    audio: UploadFile = File(...),
+    text: str = Form(...) 
+):
+    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
+    audio_data = BytesIO(audio.file.read())
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+    
+    #? 예외처리: 오디오 파일에 아무 말도 하지 않은 경우
+    if is_not_speaking(wav_audio_data):
+        raise HTTPException(status_code=422, detail="No speech detected in the audio file.")    
+
+    #! A. pronunciation(발음) 피드백 생성
+    pronunciation_feedback = get_pronunciation_feedback(wav_audio_data, text)
+
+    return pronunciation_feedback
+    
+
+@app.post("/model-inference")
+def pronunciation_asr_gpt(
+    audio: UploadFile = File(...)
+):
+    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환   
+    audio_data = BytesIO(audio.file.read())
+    wav_audio_data = convert_any_to_wav(audio_data, audio.filename) 
+    
+    transcription = get_asr_gpt(wav_audio_data)
+    
+    return {"Result": transcription}
