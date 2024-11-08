@@ -1,7 +1,7 @@
 from openai import OpenAI
 import base64
 from io import BytesIO
-from app.feedback.util import compare_ipa_with_word_index
+from app.feedback.ipa_processing import compare_ipa_with_word_index
 from jamo import h2j, j2hcj
 from app.util import FeedbackStatus
 
@@ -80,38 +80,68 @@ def get_asr_gpt(audio_data:BytesIO, standard_hangul:str):
     return response.choices[0].message.content
 
 
-import pandas as pd
-IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
-ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
-MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
-MO_HANGUL = list(IPA2KO['Korean'][32:])
-
+    
+"""
+피드백 문장 생성을 위한 함수
+"""
 MO_INSTRUCTION = None
 with open("/workspace/app/feedback/table/mo_pronunciation_instruction.txt", "r") as file:
     MO_INSTRUCTION = file.read()
 
-
-
-def get_mo_pronunciation_feedback_role_and_prompt(standard_word, user_word, standard_mo, user_mo):
+def get_role_and_prompt_for_pregenerated_mo_pronunciation_feedback(standard_mo, user_mo):
     role = (
-        "당신은 한국어 발음 교정 전문가입니다. "
-        "항상 친절하고, 상대방이 쉽게 이해할 수 있도록 명확하고 친근하게 설명해 주세요."
+        "당신은 한국어 발음을 교정해주는 전문 교육자입니다.\n\n"
+        "다음의 원칙을 반드시 준수해주세요:\n"
+        "1. 학습자의 현재 발음 상태를 정확히 파악하고 개선점을 제시합니다.\n"
+        "2. 발음 교정 방법을 구체적이고 단계적으로 설명합니다.\n"
+        "3. 입 모양과 혀의 위치를 해부학적으로 정확하게 설명합니다.\n"
+        "4. 학습자가 이해하기 쉽도록 명확하고 간단한 문장을 사용합니다.\n"
+        "5. 항상 긍정적이고 격려하는 톤을 유지합니다."
     )
     
     prompt = (
-        f"사용자가 '{standard_word}'를 '{user_word}'라고 발음했어요. "
-        f"즉 '{standard_mo}'을 '{user_mo}'로 발음했는데, 아래의 모음 발음 방법을 참고하여 피드백을 해주세요.\r\n"
-        f"- 피드백은 5문장 이내로 작성하고, '{standard_word}'을(를) 발음할때, '{standard_mo}' 발음이 '{user_mo}' 로 들려요. 로 시작해주세요.\r\n"
-        f"-'{user_mo}'에서 '{standard_mo}'로 교정하기 위한 발음 방법을 중심으로 설명해 주세요. (두 발음 방법 차이를 설명)\r\n"
-        f"- 이모티콘은 포함하지 않습니다.\r\n"
-        f"모음 발음 방법:\r\n"
+        f"[발음 교정 요청]\n"
+        f"- 목표 발음: '{standard_mo}'\n" 
+        f"- 현재 발음: '{user_mo}'\n\n"
+        f"[피드백 작성 요구사항]\n"
+        f"1. 정확히 3개의 문장으로 구성하여 다음 순서로 작성해주세요:\n"
+        f"   a) 입 모양 교정 방법\n"
+        f"   b) 혀 위치 교정 방법\n"
+        f"   c) 두 발음의 핵심적 차이점\n\n"
+        f"2. 반드시 '{user_mo}'에서 '{standard_mo}'로 개선하는 방향으로 설명해주세요.\n"
+        f"3. 모음을 언급할 때는 반드시 작은따옴표로 묶어서 표기해주세요. (예: '{user_mo}', '{standard_mo}')\n"
+        f"4. 이모티콘이나 특수문자는 사용하지 마세요.\n"
+        f"5. '피드백:', '교정 방법:' 등의 제목이나 부가 설명 없이 순수 피드백 문장만 작성해주세요.\n\n"
+        f"[참고 자료 - 표준 모음 발음법]\n"
         f"{MO_INSTRUCTION}"
     )
 
     return (role, prompt)
 
 
-def get_pronunciation_feedback_gpt(ipa_standard, ipa_user, standard_hangul, user_hangul):
+def get_pregenerated_mo_pronunciation_feedback(standard_mo, user_mo):
+    role, prompt = get_role_and_prompt_for_pregenerated_mo_pronunciation_feedback(standard_mo, user_mo)
+
+    feedback = client.chat.completions.create(
+        model="chatgpt-4o-latest",
+        messages=[
+            {"role": "system", "content": role},
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0
+    )
+
+    feedback_text = feedback.choices[0].message.content
+    return feedback_text
+
+
+"""
+! 사용하지 않는 함수
+"""
+def get_pronunciation_feedback_gpt_deprecated(ipa_standard, ipa_user, standard_hangul, user_hangul):
     """
     <Role>
         1. 두 IPA를 비교하여 틀린 부분 찾기 <- compare_ipa_with_word_index

@@ -268,3 +268,18 @@ def pronunciation_asr_gpt(
     transcription = get_asr_gpt(wav_audio_data)
     
     return {"Result": transcription}
+
+
+
+
+
+from app.feedback.openai_api import get_pregenerated_mo_pronunciation_feedback
+
+@app.post("/get-pregenerated-feedback")
+def get_pregenerated_feedback(
+    standard_mo: str = Form(...),
+    user_mo: str = Form(...)
+):
+    feedback = get_pregenerated_mo_pronunciation_feedback(standard_mo, user_mo)
+    return {"feedback": feedback}
+
