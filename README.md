@@ -10,5 +10,5 @@ This repository hosts the inference server for the "올발음" project, a speech
 
 - Image Name: `suhwan99/vocalist-ml-server`
 ```bash
-docker run -d -p 8000:8000 --name ml-server -v ${PWD}:/workspace suhwan99/vocalist-ml-server:latest
+docker run -d -p 8000:8000 --name ml-server -v ${PWD}:/workspace --env-file .env suhwan99/vocalist-ml-server:latest
 ```

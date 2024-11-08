@@ -1,67 +1,96 @@
-
 from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
 from difflib import SequenceMatcher
 from app.util import FeedbackStatus
 from app.feedback.ipa_processing import compare_ipa_with_word_index
 import pandas as pd
-
+from concurrent.futures import ThreadPoolExecutor
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 def get_pronunciation_feedback(audio_data, standard_hangul):
-    """
-    <Role>
-        1. 오디오 파일에서 한국어 발화 전사. <- get_asr_gpt
-        2. 사용자가 다른 문장을 말한 경우 예외 처리.
-        3. 주어진 문장과 전사를 IPA로 변환.
-        4. 두 IPA 비교하여 피드백 문장 생성 <- get_pronunciation_feedback_gpt
+    """        
+    Process
+    -------
+    1. OpenAI Audio API를 사용하여 음성을 텍스트로 변환 (get_asr_gpt)
+    2. 사용자가 다른 문장을 말한 경우 예외 처리
+    3. 정답 문장과 사용자 발화를 IPA(국제음성기호)로 변환 
+    4. 두 IPA를 비교하여 발음 오류 검출 및 피드백 생성
     
-    *transcription: 한글 발음 전사 텍스트
-    *pronunciation_feedback: 각 틀린 부분에 대한 피드백 저장.
-    *pronunciation_score: 발음 점수
-    *feedback_images: 각 틀린 부분에 대한 피드백 이미지 이름 저장. (이미지는 spring 서버에 있음)
-    *status: FeedbackStatus (app.feedback.util.py)
+    Returns
+    -------
+    dict
+        *status : int
+            피드백 생성 상태 (FeedbackStatus)
+        *transcription : str
+            사용자 발화 전사 텍스트
+        *feedback_count : int
+            생성된 피드백 개수
+        *word_index : list
+            오류가 발생한 단어의 인덱스 리스트
+        *pronunciation_feedbacks : list
+            발음 교정 피드백 텍스트 리스트
+        *feedback_image_names : list
+            피드백 관련 이미지 파일명 리스트
+        *wrong_spellings : list
+            잘못 발음한 음소 리스트
+        *pronunciation_score : float
+            발음 평가 점수 (0-100)
     """
-    transcription = "한글 발음 전사"
-    pronunciation_feedback = []
+    status = 0
+    transcription = ""
+    feedback_count = 0
+    word_index = []
+    pronunciation_feedbacks = []
+    feedback_image_names = []
+    wrong_spellings = []
     pronunciation_score = 0.0
-    feedback_images = []
-    status = FeedbackStatus.PRONUNCIATION_SUCCESS
     
-    
+    #! <OpenAI Audio ASR>: 사용자의 발화를 텍스트로 변환
     transcription = openai_api.get_asr_gpt(audio_data, standard_hangul)
 
+    
     if transcription == '1':
-    #? 사용자가 다른 문장을 말했다면.
+    #! <Wrong Sentence>: 사용자가 다른 문장을 말한 경우
         status = FeedbackStatus.WRONG_SENTENCE
     else:
-    #? 사용자가 주어진 문장을 말했다면.
+    
         standard_ipa = hangul2ipa(standard_hangul)
         user_ipa = hangul2ipa(transcription)
         
-        logger.info("*"*50)
-        logger.info(f"문장       : {standard_hangul}")
-        logger.info(f"사용자 발음: {transcription}")
-        logger.info(f"문장 IPA   : {standard_ipa}")
-        logger.info(f"사용자 IPA : {user_ipa}")
-        logger.info("*"*50)
+        # logger.info("*"*50)
+        # logger.info(f"문장       : {standard_hangul}")
+        # logger.info(f"사용자 발음: {transcription}")
+        # logger.info(f"문장 IPA   : {standard_ipa}")
+        # logger.info(f"사용자 IPA : {user_ipa}")
+        # logger.info("*"*50)
         
-        response = get_pregenerated_pronunciation_feedback(standard_ipa, user_ipa, standard_hangul, transcription)
-        
-        pronunciation_feedback = response['feedbacks']
-        feedback_images = response['feedback_images']
-        status = response['status']
-        pronunciation_score = calculate_pronunciation_score(standard_ipa, user_ipa)
-    
+        #! <Pronunciation Feedback>: 사용자의 발음을 분석하여 피드백 생성
+        with ThreadPoolExecutor() as executor:
+            feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_ipa, user_ipa, standard_hangul, transcription)
+            score_future = executor.submit(calculate_pronunciation_score, standard_ipa, user_ipa)
+
+            feedback_response = feedback_response.result()
+            pronunciation_score = score_future.result()
+
+        status = feedback_response['status']
+        feedback_count = len(feedback_response['pronunciation_feedbacks'])
+        word_indexes = feedback_response['word_indexes']
+        pronunciation_feedbacks = feedback_response['pronunciation_feedbacks']
+        feedback_image_names = feedback_response['feedback_image_names']
+        wrong_spellings = feedback_response['wrong_spellings']
+
     return{
+        "status": status,
         "transcription": transcription,
-        "pronunciation_feedback": pronunciation_feedback,
-        "pronunciation_score": pronunciation_score,
-        "feedback_images": feedback_images,
-        "status": status
+        "feedback_count": feedback_count,
+        "word_indexes": word_indexes,
+        "pronunciation_feedbacks": pronunciation_feedbacks,
+        "feedback_image_names": feedback_image_names,
+        "wrong_spellings": wrong_spellings,
+        "pronunciation_score": pronunciation_score,   
     }
 
 
@@ -78,7 +107,6 @@ MO_HANGUL = list(IPA2KO['Korean'][32:])
 pregenerated_feedback_csv_path = "/workspace/app/feedback/table/pregenerated_feedback.csv"
 PREGENERATED_FEEDBACK = pd.read_csv(pregenerated_feedback_csv_path)
 
-
 def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_hangul, user_hangul):
     """
     <Role>
@@ -91,23 +119,29 @@ def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_han
     *status: FeedbackStatus - PRONUNCIATION_SUCCESS / FEEDBACK_PROVIDED / NOT_IMPLEMENTED
     """
     #* 여러 error에 대한 feedback과 image 이름을 저장할 리스트.
-    feedbacks = []
-    feedback_images = []
-    status = FeedbackStatus.PRONUNCIATION_SUCCESS
+    status = 0
+    word_indexes = []
+    pronunciation_feedbacks = []
+    feedback_image_names = []
+    wrong_spellings = []
     
     # 두 IPA를 비교하여 error를 찾음.
     errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
     logger.info(f"Difference : {errors}")
     
-    # error가 1개 이상이면 피드백 생성
-    if len(errors) > 0:
+    
+    if len(errors) == 0:
+        #! 틀린 부분이 없는 경우
+        status = FeedbackStatus.PRONUNCIATION_SUCCESS
+    else:
+        #! 틀린 부분이 1개 이상이면 피드백 생성
         # standard_hangul_words = standard_hangul.split(" ")
         # user_hangul_words = user_hangul.split(" ")
         
         for error in errors:
             word_id, standard_ipa, user_ipa = error
             
-            #* error가 발생한 단어.
+            # error가 발생한 단어.
             # standard_word = standard_hangul_words[word_id] 
             # user_word = user_hangul_words[word_id]
             
@@ -119,22 +153,30 @@ def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_han
                 combination = f"{before_mo}_{after_mo}"
                 feedback = PREGENERATED_FEEDBACK[PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
                 
-                feedbacks.append(feedback)
-                
-                feedback_images.append(f"/workspace/app/images/mo_transition/{before_mo}_{after_mo}.jpg")
-                #! 아직 모음 피드백 하나만 반환.
-                break
+                #* 틀린 부분의 단어 인덱스 저장
+                word_indexes.append(word_id)
+                #* 피드백 저장
+                pronunciation_feedbacks.append(feedback)
+                #* 피드백 이미지 이름 저장
+                feedback_image_names.append(f"{before_mo}_{after_mo}.jpg")
+                #* 잘못 발음한 음소 저장
+                wrong_spellings.append(f"{after_mo}")
+               
+                # break #! 아직 모음 피드백 하나만 반환.
         
-        # 피드백을 정상적으로 생성한 경우
-        if len(feedbacks) > 0:
+        if len(pronunciation_feedbacks) > 0:
+            #! 피드백을 정상적으로 생성한 경우
             status = FeedbackStatus.FEEDBACK_PROVIDED
-        # 에러는 있지만 피드백을 생성하지 못한 경우
         else:
+            #! 아직 구현되지 않은 기능인 경우
             status = FeedbackStatus.NOT_IMPLEMENTED
 
     return {
-        "feedbacks": feedbacks,
-        "feedback_images": feedback_images,
+        "status": status,
+        "word_indexes": word_indexes,
+        "pronunciation_feedbacks": pronunciation_feedbacks,
+        "feedback_image_names": feedback_image_names,
+        "wrong_spellings": wrong_spellings,
         "status": status
     }
 

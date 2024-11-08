@@ -9,7 +9,7 @@
 
 ## Request
 ```http
-POST /get-feedback
+POST /get-pronunciation-feedback
 Content-Type: multipart/form-data
 {
     "audio": <audio_file>,
@@ -27,13 +27,14 @@ Content-Type: multipart/form-data
 ## Response
 ```json
 {
-    "status": 2,
-    "transcription": "나는 행보카게 끝나는 뇽화가 조따.",
-    "pronunciation_feedback": "'ㅏ'를 발음할 때, 입모양을 더 크게 하세요.",
-    "pronunciation_score": 93.2,
-    "intonation_feedback": "삭제 예정",
-    "pronunciation_feedback_image": "image_base64",
-    "intonation_feedback_image": "image_base64"
+    "status": 1,
+    "transcription": "나는 행복하게 끝나는 용화가 좋다.",
+    "feedback_count": 1,
+    "word_index": [3],
+    "pronunciation_feedbacks": ["입술을 동그랗게 모으는 대신 ..."],
+    "feedback_image_names": ["ㅛ_ㅕ.jpg"],
+    "wrong_spellings": ["ㅕ"],
+    "pronunciation_score": 97.56
 }
 ```
 ### 422 Unprocessable Entity
@@ -50,21 +51,36 @@ Content-Type: multipart/form-data
         "detail": "다른 문장을 발음했습니다."
     }
     ```
+### 501 Not Implemented
+- 아직 피드백 알고리즘이 구현되지 않은 경우.
+    ```json
+    {
+        "detail": "아직 구현되지 않은 기능입니다."
+    }
+    ```
 
 ### Response 항목 설명
-- **status** (`String`):
+- **status** (`int`):
   - 1 : 정확한 발음. 피드백 & 입모양 사진 없음.
   - 2 : 발음에 틀린 부분 있음. 피드백 & 입모양 사진 있음.
-  - 5 : 아직 구현 안된 부분. 피드백 & 입모양 사진 없음.
 
 - **transcription** (`String`):
   - 사용자의 발화를 발음 그대로 전사한 한글 텍스트.
 
-- **pronunciation_feedback** (`String`):
-  - 발음에 대한 피드백.
+- **feedback_count** (`int`):
+  - 생성된 피드백 개수 - word_index, pronunciation_feedbacks, feedback_image_names, wrong_spellings의 길이와 같음.
+
+- **word_index** (`list`):
+  - 몇 번째 단어에서 틀렸는지 나타내는 인덱스를 포함하는 리스트.
+
+- **pronunciation_feedbacks** (`list`):
+  - 발음 교정 피드백 텍스트를 포함하는 리스트.
+
+- **feedback_image_names** (`list`):
+  - 발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트.
+
+- **wrong_spellings** (`list`):
+  - 틀린 철자들 리스트.
 
 - **pronunciation_score** (`float`):
-  - 발음 정확도.
-
-- **pronunciation_feedback_image** (`Base64`):
-  - 발음 피드백을 위한 구강구조 이미지.
+  - 사용자 발음을 평가한 점수.
