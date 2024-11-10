@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 logger = logging.getLogger(__name__)
 
-
+from app.hangul2ipa.worker import *
 def get_pronunciation_feedback(audio_data, standard_hangul):
     """        
     Process
@@ -56,17 +56,19 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
     #! <Wrong Sentence>: 사용자가 다른 문장을 말한 경우
         status = FeedbackStatus.WRONG_SENTENCE
     else:
-    
-        standard_ipa = hangul2ipa(standard_hangul)
-        user_ipa = hangul2ipa(transcription)
+        standard_jamo_list = hangul2jamo_with_pronunciation_rules(standard_hangul)
+        user_jamo_list = hangul2jamo_with_pronunciation_rules(transcription)
+        
+        standard_jamo = ' '.join([''.join(word) for word in standard_jamo_list])
+        user_jamo = ' '.join([''.join(word) for word in user_jamo_list])
         
         #! <Pronunciation Feedback>: 사용자의 발음을 분석하여 피드백 생성
         with ThreadPoolExecutor() as executor:
             feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_hangul, transcription)
-            score_future = executor.submit(calculate_pronunciation_score, standard_ipa, user_ipa)
+            score = executor.submit(calculate_pronunciation_score, standard_jamo, user_jamo)
 
             feedback_response = feedback_response.result()
-            pronunciation_score = score_future.result()
+            pronunciation_score = score.result()
 
         status = feedback_response['status']
         feedback_count = len(feedback_response['pronunciation_feedbacks'])
@@ -187,13 +189,12 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     }
 
 
-
-def calculate_pronunciation_score(original_ipa, user_ipa):
+def calculate_pronunciation_score(original_jamo, user_jamo):
     """
     Levenshtein 거리 기반으로 유사도 점수를 계산하는 함수
     0 ~ 100 사이의 실수(소수점 아래 둘째자리) 반환
     """
-    matcher = SequenceMatcher(None, original_ipa, user_ipa)
+    matcher = SequenceMatcher(None, original_jamo, user_jamo)
     
     match_ratio = matcher.ratio()
     
