@@ -9,7 +9,7 @@ from app.feedback.pronunciation_feedback import get_pronunciation_feedback
 from app.feedback.intonation_feedback import get_intonation_feedback
 from app.feedback.openai_api import get_asr_gpt
 from app.hangul2ipa.worker import apply_pronunciation_rules
-from app.models import HangulRequest
+from app.models import *
 
 #* Debugging
 from datetime import datetime, timedelta, timezone
@@ -49,46 +49,6 @@ async def give_pronunciation_feedback(
 ):
     """
     사용자의 발음(pronunciation)을 분석하여 틀린 부분을 교정하는 피드백을 반환하는 API
-    
-    Returns:
-    -------
-    JSON:
-        * status : FeedbackStatus (int)
-            Feedback 수행 상태를 나타내는 변수. app/util.py의 FeedbackStatus 클래스를 참고.
-        
-        * transcription : str
-            오디오 파일을 들리는대로 전사한 한글 텍스트.
-        
-        * feedback_count : int
-            생성된 피드백 개수. 'word_index', 'pronunciation_feedbacks', 'feedback_image_names', 'wrong_spellings' 리스트의 개수와 동일.
-        
-        * word_index : list
-            몇번쨰 단어에서 틀렸는지 나타내는 인덱스를 포함하는 리스트.
-        
-        * pronunciation_feedbacks : list
-            발음 교정 피드백 텍스트를 포함하는 리스트.
-        
-        * feedback_image_names : list
-            발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트. 사진들은 S3에 저장됨.
-        
-        * wrong_spellings : list
-            틀린 철자들 리스트.
-        
-        * pronunciation_score : float
-            사용자 발음을 평가한 점수.
-
-    Example Response:
-    -----------------
-    {
-        "status": 1,
-        "transcription": "나는 행복하게 끝나는 용화가 좋다.",
-        "feedback_count": 2,
-        "word_index": [3, 5],
-        "pronunciation_feedbacks": ["feedback1", "feedback2"],
-        "feedback_image_names": ["image1.png", "image2.png"],
-        "wrong_spellings": ["ㅕ", "ㅈ"],
-        "pronunciation_score": 0.85
-    }
     """
     
     #* <반환값>
@@ -139,16 +99,16 @@ async def give_pronunciation_feedback(
         transcription = "정확한 발음입니다."
         pronunciation_score = 100.0
         
-    return {
-        "status": status,
-        "transcription": transcription,
-        "feedback_count": feedback_count,
-        "word_indexes": word_indexes,
-        "pronunciation_feedbacks": pronunciation_feedbacks,
-        "feedback_image_names": feedback_image_names,
-        "wrong_spellings": wrong_spellings,
-        "pronunciation_score": pronunciation_score
-    }
+    return PronunciationFeedbackResponse(
+        status=status,
+        transcription=transcription,
+        feedback_count=feedback_count,
+        word_indexes=word_indexes,
+        pronunciation_feedbacks=pronunciation_feedbacks,
+        feedback_image_names=feedback_image_names,
+        wrong_spellings=wrong_spellings,
+        pronunciation_score=pronunciation_score
+    )
     
 @app.post("/get-pronounced-text")
 def get_pronounced_text(

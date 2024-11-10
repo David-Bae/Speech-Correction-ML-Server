@@ -42,7 +42,7 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
     status = 0
     transcription = ""
     feedback_count = 0
-    word_index = []
+    word_indexes = []
     pronunciation_feedbacks = []
     feedback_image_names = []
     wrong_spellings = []
