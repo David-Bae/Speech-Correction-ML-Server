@@ -46,12 +46,8 @@ def compare_ipa_with_word_index(original_ipa, user_ipa):
         # SequenceMatcher로 단어 단위의 음소 비교
         matcher = SequenceMatcher(None, orig_word, user_word)
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag != 'equal':
-                # word_index로 몇 번째 단어에서 차이가 발생했는지 표시
-                # logger.info(orig_word)
-                # logger.info(user_word)
-                
-                diff_with_word_index.append((word_index, orig_word[i1:i2][0], user_word[j1:j2][0]))
+            if tag != 'equal':                
+                diff_with_word_index.append((word_index, tag, orig_word[i1:i2], user_word[j1:j2]))
     
     return diff_with_word_index
 
@@ -69,7 +65,10 @@ def compare_jamo_with_word_index(original_hangul, user_hangul):
         # SequenceMatcher로 단어 단위의 음소 비교
         matcher = SequenceMatcher(None, orig_word, user_word)
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-            if tag != 'equal':                
+            #! 자주 틀리는 부분: Debug 필요!
+            # print(tag, i1, i2, j1, j2)
+            
+            if tag != 'equal':
                 diff_with_word_index.append((word_index, tag, orig_word[i1:i2], user_word[j1:j2]))
-    
-    return diff_with_word_index
+
+    return (parsed_original, parsed_user, diff_with_word_index)

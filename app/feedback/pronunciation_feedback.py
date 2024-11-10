@@ -2,7 +2,7 @@ from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
 from difflib import SequenceMatcher
 from app.util import FeedbackStatus
-from app.feedback.ipa_processing import compare_ipa_with_word_index
+from app.feedback.ipa_processing import compare_jamo_with_word_index
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 
@@ -60,16 +60,9 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         standard_ipa = hangul2ipa(standard_hangul)
         user_ipa = hangul2ipa(transcription)
         
-        # logger.info("*"*50)
-        # logger.info(f"문장       : {standard_hangul}")
-        # logger.info(f"사용자 발음: {transcription}")
-        # logger.info(f"문장 IPA   : {standard_ipa}")
-        # logger.info(f"사용자 IPA : {user_ipa}")
-        # logger.info("*"*50)
-        
         #! <Pronunciation Feedback>: 사용자의 발음을 분석하여 피드백 생성
         with ThreadPoolExecutor() as executor:
-            feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_ipa, user_ipa, standard_hangul, transcription)
+            feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_hangul, transcription)
             score_future = executor.submit(calculate_pronunciation_score, standard_ipa, user_ipa)
 
             feedback_response = feedback_response.result()
@@ -100,14 +93,14 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
 """
 
 IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
-ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
-MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
-MO_HANGUL = list(IPA2KO['Korean'][32:])
+# ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
+# MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
+MO = list(IPA2KO['Korean'][32:])
 
 pregenerated_feedback_csv_path = "/workspace/app/feedback/table/pregenerated_feedback.csv"
 PREGENERATED_FEEDBACK = pd.read_csv(pregenerated_feedback_csv_path)
 
-def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_hangul, user_hangul):
+def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     """
     <Role>
         1. 두 IPA를 비교하여 틀린 부분 찾기 <- compare_ipa_with_word_index
@@ -125,8 +118,15 @@ def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_han
     feedback_image_names = []
     wrong_spellings = []
     
+    def add_feedback(word_id, feedback, feedback_image_name, wrong_spelling):
+        word_indexes.append(word_id)
+        pronunciation_feedbacks.append(feedback)
+        feedback_image_names.append(feedback_image_name)
+        wrong_spellings.append(wrong_spelling)
+    
+    
     # 두 IPA를 비교하여 error를 찾음.
-    errors = compare_ipa_with_word_index(ipa_standard, ipa_user)
+    parsed_original, parsed_user, errors = compare_jamo_with_word_index(standard_hangul, user_hangul)
     logger.info(f"Difference : {errors}")
     
     
@@ -134,35 +134,41 @@ def get_pregenerated_pronunciation_feedback(ipa_standard, ipa_user, standard_han
         #! 틀린 부분이 없는 경우
         status = FeedbackStatus.PRONUNCIATION_SUCCESS
     else:
-        #! 틀린 부분이 1개 이상이면 피드백 생성
-        # standard_hangul_words = standard_hangul.split(" ")
-        # user_hangul_words = user_hangul.split(" ")
-        
+        #! 틀린 부분이 1개 이상이면 피드백 생성        
         for error in errors:
-            word_id, standard_ipa, user_ipa = error
+            word_id, tag, standard_jamo_list, user_jamo_list = error
             
-            # error가 발생한 단어.
-            # standard_word = standard_hangul_words[word_id] 
-            # user_word = user_hangul_words[word_id]
-            
-            if (standard_ipa in MO) and (user_ipa in MO):
-                before_mo = MO[user_ipa]
-                after_mo = MO[standard_ipa]
+            if tag == 'insert':
+                for user_jamo in user_jamo_list:
+                    feedback = f"{user_jamo}를 발음하면 안됩니다."
+                    feedback_image_name = "None.jpg"
+                    wrong_spelling = 'X'
+                    
+                    add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
                 
-                # 피드백 찾기
-                combination = f"{before_mo}_{after_mo}"
-                feedback = PREGENERATED_FEEDBACK[PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+            elif tag == 'delete':
+                for standard_jamo in standard_jamo_list:
+                    feedback = f"{standard_jamo}를 발음하지 않았습니다."
+                    feedback_image_name = "None.jpg"
+                    wrong_spelling = standard_jamo
+                    
+                    add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
                 
-                #* 틀린 부분의 단어 인덱스 저장
-                word_indexes.append(word_id)
-                #* 피드백 저장
-                pronunciation_feedbacks.append(feedback)
-                #* 피드백 이미지 이름 저장
-                feedback_image_names.append(f"{before_mo}_{after_mo}.jpg")
-                #* 잘못 발음한 음소 저장
-                wrong_spellings.append(f"{after_mo}")
+            elif tag == 'replace':
+                for standard_jamo, user_jamo in zip(standard_jamo_list, user_jamo_list):
+                    print(standard_jamo, user_jamo)
+                    if (standard_jamo in MO) and (user_jamo in MO):
+                        combination = f"{user_jamo}_{standard_jamo}"
+                        feedback = PREGENERATED_FEEDBACK[PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+                        feedback_image_name = f"{combination}.jpg"
+                        wrong_spelling = standard_jamo
+                    else:
+                        feedback = "아직 구현되지 않았습니다."
+                        feedback_image_name = "None.jpg"
+                        wrong_spelling = 'X'
+                    
+                    add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
                
-                # break #! 아직 모음 피드백 하나만 반환.
         
         if len(pronunciation_feedbacks) > 0:
             #! 피드백을 정상적으로 생성한 경우

@@ -78,9 +78,11 @@ Content-Type: multipart/form-data
 
 - **feedback_image_names** (`list`):
   - 발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트.
+  - **<span style="color: red">"None.jpg"</span>는 피드백 이미지가 없음을 의미.**
 
 - **wrong_spellings** (`list`):
   - 틀린 철자들 리스트.
+  - **<span style="color: red">'X'</span>는 없는 음소를 발음한 경우. 무시하면 됨.**
 
 - **pronunciation_score** (`float`):
   - 사용자 발음을 평가한 점수.
