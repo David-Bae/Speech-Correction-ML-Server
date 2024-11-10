@@ -54,3 +54,22 @@ def compare_ipa_with_word_index(original_ipa, user_ipa):
                 diff_with_word_index.append((word_index, orig_word[i1:i2][0], user_word[j1:j2][0]))
     
     return diff_with_word_index
+
+
+from app.hangul2ipa.worker import *
+
+def compare_jamo_with_word_index(original_hangul, user_hangul):
+    parsed_original = hangul2jamo_with_pronunciation_rules(original_hangul)
+    parsed_user = hangul2jamo_with_pronunciation_rules(user_hangul)
+    
+    diff_with_word_index = []
+    
+    # 두 개의 단어 리스트를 단어 단위로 비교
+    for word_index, (orig_word, user_word) in enumerate(zip(parsed_original, parsed_user)):
+        # SequenceMatcher로 단어 단위의 음소 비교
+        matcher = SequenceMatcher(None, orig_word, user_word)
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag != 'equal':                
+                diff_with_word_index.append((word_index, tag, orig_word[i1:i2], user_word[j1:j2]))
+    
+    return diff_with_word_index

@@ -10,3 +10,5 @@ dockerfile_legacy.txt
 environment_legacy.yml
 
 .env
+
+debug.py
