@@ -8,6 +8,8 @@ from app.util import convert_any_to_wav, is_not_speaking, FeedbackStatus
 from app.feedback.pronunciation_feedback import get_pronunciation_feedback
 from app.feedback.intonation_feedback import get_intonation_feedback
 from app.feedback.openai_api import get_asr_gpt
+from app.hangul2ipa.worker import apply_pronunciation_rules
+from app.models import HangulRequest
 
 #* Debugging
 from datetime import datetime, timedelta, timezone
@@ -15,6 +17,8 @@ import time
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
 
 
 @asynccontextmanager
@@ -145,8 +149,24 @@ async def give_pronunciation_feedback(
         "wrong_spellings": wrong_spellings,
         "pronunciation_score": pronunciation_score
     }
-
     
+@app.post("/get-pronounced-text")
+def get_pronounced_text(
+    request: HangulRequest
+):
+    standard_hangul = request.hangul
+    
+    # 입력된 텍스트가 유효한 한글인지 검사
+    if False:
+        raise HTTPException(
+            status_code=422,
+            detail="유효한 한글 문장이 아닙니다."
+        )
+        
+    pronounced_text = apply_pronunciation_rules(standard_hangul)
+    return {"pronounced_text": pronounced_text}
+
+
 
 @app.post("/model-inference")
 def pronunciation_asr_gpt(
@@ -171,6 +191,18 @@ def get_pregenerated_feedback(
 ):
     feedback = get_pregenerated_mo_pronunciation_feedback(standard_mo, user_mo)
     return {"feedback": feedback}
+
+
+
+
+# @app.post("/get-pronounced-text")
+# def get_pronounced_text(
+#     standard_hangul: str = Form(...)
+# ):
+#     pronounced_text = apply_pronunciation_rules(standard_hangul)
+#     return {"pronounced_text": pronounced_text}
+
+
 
 
 

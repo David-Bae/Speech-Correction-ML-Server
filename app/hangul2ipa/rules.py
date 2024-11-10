@@ -221,8 +221,9 @@ def apply_rules(word: Word, rules_to_apply: str = 'pastcnhovr') -> Word:
         word.jamo = neutralize(word)
 
     # apply intersonorant H-deletion
-    if 'h' in rules_to_apply and 'ㅎ' in word.jamo[1:-1]:
-        word.jamo = delete_h(word)
+    #! ㅎ 삭제 규칙은 현재 사용하지 않음
+    # if 'h' in rules_to_apply and 'ㅎ' in word.jamo[1:-1]:
+    #     word.jamo = delete_h(word)
 
     # apply (optional) non-coronalization
     if 'o' in rules_to_apply:
