@@ -95,12 +95,21 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
 """
 
 IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
-# ZA = dict(zip(IPA2KO['IPA'][:32], IPA2KO['Korean'][:32]))
-# MO = dict(zip(IPA2KO['IPA'][32:], IPA2KO['Korean'][32:]))
 MO = list(IPA2KO['Korean'][32:])
+JA = list(IPA2KO['Korean'][:32])
 
-pregenerated_feedback_csv_path = "/workspace/app/feedback/table/pregenerated_feedback.csv"
-PREGENERATED_FEEDBACK = pd.read_csv(pregenerated_feedback_csv_path)
+import json
+JAMO_METADATA = json.load(open('/workspace/app/feedback/table/jamo_metadata.json'))
+JA = JAMO_METADATA['ja']
+MO = JAMO_METADATA['mo']
+ENABLE_JA_COMBINATIONS = JAMO_METADATA['enable_ja_combinations']
+
+
+
+
+
+MO_PREGENERATED_FEEDBACK = pd.read_csv("/workspace/app/feedback/table/mo_pregenerated_feedback.csv")
+JA_PREGENERATED_FEEDBACK = pd.read_csv("/workspace/app/feedback/table/ja_pregenerated_feedback.csv")
 
 def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     """
@@ -127,7 +136,7 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
         wrong_spellings.append(wrong_spelling)
     
     
-    # 두 IPA를 비교하여 error를 찾음.
+    # 두 자모를 비교하여 error를 찾음.
     parsed_original, parsed_user, errors = compare_jamo_with_word_index(standard_hangul, user_hangul)
     logger.info(f"Difference : {errors}")
     
@@ -140,18 +149,25 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
         for error in errors:
             word_id, tag, standard_jamo_list, user_jamo_list = error
             
+            #! 문장에 없는 음소를 발음한 경우 (구현완료)
             if tag == 'insert':
                 for user_jamo in user_jamo_list:
-                    feedback = f"{user_jamo}를 발음하면 안됩니다."
+                    feedback = f"문장에 포함되지 않은 '{user_jamo}'를 발음하셨습니다. '{user_jamo}' 소리를 빼고 다시 발음해 보세요."
                     feedback_image_name = "None.jpg"
-                    wrong_spelling = 'X'
+                    wrong_spelling = user_jamo
                     
                     add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
-                
+            
+            #! 문장에 있는 음소를 발음하지 않은 경우 (구현완료)
             elif tag == 'delete':
                 for standard_jamo in standard_jamo_list:
-                    feedback = f"{standard_jamo}를 발음하지 않았습니다."
-                    feedback_image_name = "None.jpg"
+                    feedback = f"{standard_jamo}를 발음하지 않았어요. "
+                    if standard_jamo in JA:
+                        feedback += JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
+                    else:
+                        feedback += MO_PREGENERATED_FEEDBACK[MO_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
+                    
+                    feedback_image_name = f"{standard_jamo}.jpg"
                     wrong_spelling = standard_jamo
                     
                     add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
@@ -159,11 +175,29 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
             elif tag == 'replace':
                 for standard_jamo, user_jamo in zip(standard_jamo_list, user_jamo_list):
                     print(standard_jamo, user_jamo)
+
+                    #! 모음 -> 모음 (구현완료)
                     if (standard_jamo in MO) and (user_jamo in MO):
                         combination = f"{user_jamo}_{standard_jamo}"
-                        feedback = PREGENERATED_FEEDBACK[PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+                        feedback = MO_PREGENERATED_FEEDBACK[MO_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
                         feedback_image_name = f"{combination}.jpg"
                         wrong_spelling = standard_jamo
+
+                    #! 자음 -> 자음 (구현완료)
+                    elif (standard_jamo in JA) and (user_jamo in JA):
+                        combination = f"{user_jamo}_{standard_jamo}"
+
+                        #* 혼동하기 쉬운 자음 조합은 GPT로 생성된 피드백 사용.
+                        if combination in ENABLE_JA_COMBINATIONS:
+                            feedback = JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+                        #* 그 외 자음은 from, to 비교하지 않고, to 자음 발음 방법을 피드백으로 사용.
+                        else:
+                            feedback = JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
+
+                        feedback_image_name = f"{combination}.jpg"
+                        wrong_spelling = standard_jamo
+
+                    # TODO 예외 발생시켜야할 듯
                     else:
                         feedback = "아직 구현되지 않았습니다."
                         feedback_image_name = "None.jpg"
