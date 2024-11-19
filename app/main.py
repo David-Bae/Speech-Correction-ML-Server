@@ -98,6 +98,10 @@ async def give_pronunciation_feedback(
         transcription = "정확한 발음입니다."
         pronunciation_score = 100.0
         
+    #! 사용자가 발음한 문장에 발음 법칙 적용.
+    transcription = apply_pronunciation_rules(transcription)    
+    
+        
     return PronunciationFeedbackResponse(
         status=status,
         transcription=transcription,

@@ -28,7 +28,7 @@ Content-Type: multipart/form-data
 ```json
 {
     "status": 1,
-    "transcription": "나는 행복하게 끝나는 용화가 좋다.",
+    "transcription": "나는 행보카게 끈나는 용화가 조타",
     "feedback_count": 1,
     "word_index": [3],
     "pronunciation_feedbacks": ["입술을 동그랗게 모으는 대신 ..."],
@@ -51,13 +51,6 @@ Content-Type: multipart/form-data
         "detail": "다른 문장을 발음했습니다."
     }
     ```
-### 501 Not Implemented
-- 아직 피드백 알고리즘이 구현되지 않은 경우.
-    ```json
-    {
-        "detail": "아직 구현되지 않은 기능입니다."
-    }
-    ```
 
 ### Response 항목 설명
 - **status** (`int`):
@@ -65,7 +58,7 @@ Content-Type: multipart/form-data
   - 2 : 발음에 틀린 부분 있음. 피드백 & 입모양 사진 있음.
 
 - **transcription** (`String`):
-  - 사용자의 발화를 발음 그대로 전사한 한글 텍스트.
+  - 사용자의 발화를 발음 그대로 전사한 한글 텍스트. **<span style="color: red">(발음 법칙 적용)</span>**
 
 - **feedback_count** (`int`):
   - 생성된 피드백 개수 - word_index, pronunciation_feedbacks, feedback_image_names, wrong_spellings의 길이와 같음.
@@ -78,11 +71,11 @@ Content-Type: multipart/form-data
 
 - **feedback_image_names** (`list`):
   - 발음 교정을 위한 입모양 사진의 이름을 포함하는 리스트.
-  - **<span style="color: red">"None.jpg"</span>는 피드백 이미지가 없음을 의미.**
+  - **<span style="color: red">'None.jpg'</span>는 사용자가 문장에 없는 음소를 발음한 경우. 무시하면 됨.**
 
 - **wrong_spellings** (`list`):
   - 틀린 철자들 리스트.
-  - **<span style="color: red">'X'</span>는 없는 음소를 발음한 경우. 무시하면 됨.**
+  - **<span style="color: red">'X'</span>는 사용자가 문장에 없는 음소를 발음한 경우. 무시하면 됨.**
 
 - **pronunciation_score** (`float`):
   - 사용자 발음을 평가한 점수.
