@@ -72,3 +72,49 @@ def compare_jamo_with_word_index(original_hangul, user_hangul):
                 diff_with_word_index.append((word_index, tag, orig_word[i1:i2], user_word[j1:j2]))
 
     return (parsed_original, parsed_user, diff_with_word_index)
+
+
+
+def compare_jamo_respectively_with_word_index(original_hangul, user_hangul):
+    parsed_original = hangul2jamo_with_pronunciation_rules(original_hangul)
+    parsed_user = hangul2jamo_with_pronunciation_rules(user_hangul)
+    
+    diff_with_word_index = []
+    
+    mo = [
+        'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 
+        'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'
+    ]
+
+    def is_mo(jamo):
+        """주어진 자모가 모음인지 확인하는 함수"""
+        return jamo in mo
+    
+    
+    def split_jamo(jamo_list):
+        ja = []
+        mo = []
+        for jamo in jamo_list:
+            if is_mo(jamo):  # 자음인지 확인하는 함수
+                mo.append(jamo)
+            else:
+                ja.append(jamo)
+        return ja, mo
+    
+    for word_index, (orig_word, user_word) in enumerate(zip(parsed_original, parsed_user)):
+        orig_ja, orig_mo = split_jamo(orig_word)
+        user_ja, user_mo = split_jamo(user_word)
+        
+        # 자음 비교
+        matcher = SequenceMatcher(None, orig_ja, user_ja)
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag != 'equal':
+                diff_with_word_index.append((word_index, 'ja', tag, orig_ja[i1:i2], user_ja[j1:j2]))
+        
+        # 모음 비교
+        matcher = SequenceMatcher(None, orig_mo, user_mo)
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag != 'equal':
+                diff_with_word_index.append((word_index, 'mo', tag, orig_mo[i1:i2], user_mo[j1:j2]))
+
+    return (parsed_original, parsed_user, diff_with_word_index)

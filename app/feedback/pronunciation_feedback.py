@@ -2,7 +2,7 @@ from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
 from difflib import SequenceMatcher
 from app.util import FeedbackStatus
-from app.feedback.ipa_processing import compare_jamo_with_word_index
+from app.feedback.ipa_processing import compare_jamo_with_word_index, compare_jamo_respectively_with_word_index
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 
@@ -137,7 +137,7 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     
     
     # 두 자모를 비교하여 error를 찾음.
-    parsed_original, parsed_user, errors = compare_jamo_with_word_index(standard_hangul, user_hangul)
+    parsed_original, parsed_user, errors = compare_jamo_respectively_with_word_index(standard_hangul, user_hangul)
     logger.info(f"Difference : {errors}")
     
     
@@ -147,7 +147,7 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     else:
         #! 틀린 부분이 1개 이상이면 피드백 생성        
         for error in errors:
-            word_id, tag, standard_jamo_list, user_jamo_list = error
+            word_id, jamo_type, tag, standard_jamo_list, user_jamo_list = error
             
             #! 문장에 없는 음소를 발음한 경우 (구현완료)
             if tag == 'insert':
@@ -177,14 +177,14 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
                     print(standard_jamo, user_jamo)
 
                     #! 모음 -> 모음 (구현완료)
-                    if (standard_jamo in MO) and (user_jamo in MO):
+                    if jamo_type == 'mo':
                         combination = f"{user_jamo}_{standard_jamo}"
                         feedback = MO_PREGENERATED_FEEDBACK[MO_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
                         feedback_image_name = f"{combination}.jpg"
                         wrong_spelling = standard_jamo
 
                     #! 자음 -> 자음 (구현완료)
-                    elif (standard_jamo in JA) and (user_jamo in JA):
+                    elif jamo_type == 'ja':
                         combination = f"{user_jamo}_{standard_jamo}"
 
                         #* 혼동하기 쉬운 자음 조합은 GPT로 생성된 피드백 사용.
@@ -196,12 +196,6 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
 
                         feedback_image_name = f"{combination}.jpg"
                         wrong_spelling = standard_jamo
-
-                    # TODO 예외 발생시켜야할 듯
-                    else:
-                        feedback = "아직 구현되지 않았습니다."
-                        feedback_image_name = "None.jpg"
-                        wrong_spelling = 'X'
                     
                     add_feedback(word_id, feedback, feedback_image_name, wrong_spelling)
                
