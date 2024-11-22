@@ -5,7 +5,7 @@ from app.util import FeedbackStatus
 from app.feedback.ipa_processing import compare_jamo_with_word_index, compare_jamo_respectively_with_word_index
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
-
+from fastapi import HTTPException
 import logging
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,10 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
 
             feedback_response = feedback_response.result()
             pronunciation_score = score.result()
+            
+            #! <Pronunciation Score is 0.0>:
+            if pronunciation_score <= 0.1:
+                raise HTTPException(status_code=422, detail="발음 평가 점수가 0점입니다.")
 
         status = feedback_response['status']
         feedback_count = len(feedback_response['pronunciation_feedbacks'])

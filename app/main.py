@@ -118,14 +118,6 @@ def get_pronounced_text(
     request: HangulRequest
 ):
     standard_hangul = request.hangul
-    
-    # 입력된 텍스트가 유효한 한글인지 검사
-    if False:
-        raise HTTPException(
-            status_code=422,
-            detail="유효한 한글 문장이 아닙니다."
-        )
-        
     pronounced_text = apply_pronunciation_rules(standard_hangul)
     return {"pronounced_text": pronounced_text}
 
