@@ -6,7 +6,7 @@ from pydub import AudioSegment
 from io import BytesIO
 import librosa
 import numpy as np
-# import base64
+from PIL import Image
 
 class FeedbackStatus:
     PRONUNCIATION_SUCCESS = 1   # 틀린 부분 없음
@@ -62,6 +62,22 @@ def is_not_speaking(audio, threshold=0.0001):
     return energy < threshold
 
 
+
+def convert_Image_to_BytesIO(image: Image) -> BytesIO:
+    """
+    PIL의 Image 객체를 바이트 문자열로 변환
+    
+    Parameters:
+        image (Image): PIL Image 객체
+        
+    Returns:
+        bytes: 변환된 이미지의 바이트 문자열
+    """
+    image_binary = BytesIO()
+    image.save(image_binary, format="PNG")
+    image_binary.seek(0)  # 파일 포인터를 처음 위치로 이동
+    
+    return image_binary
 
 
 
