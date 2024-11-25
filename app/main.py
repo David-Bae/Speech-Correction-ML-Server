@@ -89,17 +89,17 @@ async def give_pronunciation_feedback(
         #! <WRONG_SENTENCE>: 사용자가 다른 문장을 발화한 경우
         raise HTTPException(status_code=423, detail="다른 문장을 발음했습니다.")
     
-    if status == FeedbackStatus.NOT_IMPLEMENTED:
+    elif status == FeedbackStatus.NOT_IMPLEMENTED:
         #! <NOT_IMPLEMENTED>: 아직 피드백 알고리즘이 구현되지 않은 경우.  
         raise HTTPException(status_code=501, detail="아직 구현되지 않은 기능입니다.")
     
-    if status == FeedbackStatus.PRONUNCIATION_SUCCESS:
+    elif status == FeedbackStatus.PRONUNCIATION_SUCCESS:
         #! <PRONUNCIATION_SUCCESS>: 문장을 정확히 발음한 경우
         transcription = "정확한 발음입니다."
         pronunciation_score = 100.0
-        
-    #! 사용자가 발음한 문장에 발음 법칙 적용.
-    transcription = apply_pronunciation_rules(transcription)    
+    else:
+        #! 사용자가 발음한 문장에 발음 법칙 적용.
+        transcription = apply_pronunciation_rules(transcription)    
     
         
     return PronunciationFeedbackResponse(
@@ -142,7 +142,7 @@ def pronunciation_asr_gpt(
 @app.post("/get-intonation-feedback")
 def give_intonation_feedback(
     audio: UploadFile = File(...),
-    text: str = Form(...) 
+    text: str = Form(...)
 ):
     #* <반환값>
     status = FeedbackStatus.PRONUNCIATION_SUCCESS    
@@ -171,8 +171,19 @@ def give_intonation_feedback(
     intonation_feedbacks = intonation_feedback['intonation_feedbacks']
     intonation_score = intonation_feedback['intonation_score']
     feedback_image = intonation_feedback['feedback_image'] #! feedback_image의 자료형은 Image
+
+    if feedback_image is None:
+        logger.error("2. give_intonation_feedback: Feedback image is None")
+    else:
+        logger.info("2. give_intonation_feedback: Feedback image is not None")
+    
     feedback_image_binary = convert_Image_to_BytesIO(feedback_image) #! 멀티파트로 전송하기 위해 binary로 변환
     
+    if feedback_image_binary is None:
+        logger.error("5. give_intonation_feedback: Feedback image binary is None")
+    else:
+        logger.info("5. give_intonation_feedback: Feedback image binary is not None")
+
     ########################################################################################################
     #! <Multi-part/form-data>    
     #* 고유한 boundary 설정
@@ -215,7 +226,14 @@ def give_intonation_feedback(
     add_text_part('intonation_score', str(intonation_score))
     
     #! 이미지 파트 추가 feedback_image의 자료형은 BytesIO
-    add_file_part('feedback_image', 'feedback_image.png', feedback_image_binary.getvalue(), 'image/png')
+    feedback_image_bin_value = feedback_image_binary.getvalue()
+
+    if feedback_image_bin_value is None:
+        logger.error("6. give_intonation_feedback: Feedback image binary value is None")
+    else:
+        logger.info("6. give_intonation_feedback: Feedback image binary value is not None")
+
+    add_file_part('feedback_image', 'feedback_image.png', feedback_image_bin_value, 'image/png')
 
     # 마지막 boundary 추가
     multipart_body += f'--{boundary}--\r\n'.encode('utf-8')

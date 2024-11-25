@@ -73,9 +73,19 @@ def convert_Image_to_BytesIO(image: Image) -> BytesIO:
     Returns:
         bytes: 변환된 이미지의 바이트 문자열
     """
+    if image is None:
+        logger.error("3. convert_Image_to_BytesIO: Image is None")
+    else:
+        logger.info("3. convert_Image_to_BytesIO: Image is not None")
+
     image_binary = BytesIO()
     image.save(image_binary, format="PNG")
     image_binary.seek(0)  # 파일 포인터를 처음 위치로 이동
+
+    if image_binary is None:
+        logger.error("4. convert_Image_to_BytesIO: Image binary is None")
+    else:
+        logger.info("4. convert_Image_to_BytesIO: Image binary is not None")
     
     return image_binary
 
