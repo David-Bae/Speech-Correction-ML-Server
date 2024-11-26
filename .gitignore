@@ -3,8 +3,8 @@ demo/
 # Ignore all .pyc files in the root and subdirectories
 *.pyc
 
-# Optionally, ignore __pycache__ directories, which commonly contain .pyc files
-__pycache__/
+# 프로젝트 폴더의 모든 서브디렉토리에 존재하는 pycache폴더 무시
+**/__pycache__/
 
 dockerfile_legacy.txt
 environment_legacy.yml
@@ -12,5 +12,3 @@ environment_legacy.yml
 .env
 
 debug.py
-
-intonation/*
