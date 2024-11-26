@@ -54,18 +54,15 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
     
     if transcription == '1':
     #! <Wrong Sentence>: 사용자가 다른 문장을 말한 경우
-        status = FeedbackStatus.WRONG_SENTENCE
-    else:
-        standard_jamo_list = hangul2jamo_with_pronunciation_rules(standard_hangul)
-        user_jamo_list = hangul2jamo_with_pronunciation_rules(transcription)
-        
-        standard_jamo = ' '.join([''.join(word) for word in standard_jamo_list])
-        user_jamo = ' '.join([''.join(word) for word in user_jamo_list])
-        
+        status = FeedbackStatus.WRONG_SENTENCE        
+    # elif compare_word_count(standard_hangul, transcription) is False:
+    #     #! <Wrong Word Count>: 표준 문장과 전사한 문장의 단어 개수가 다른 경우
+    #     pass
+    else:        
         #! <Pronunciation Feedback>: 사용자의 발음을 분석하여 피드백 생성
         with ThreadPoolExecutor() as executor:
             feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_hangul, transcription)
-            score = executor.submit(calculate_pronunciation_score, standard_jamo, user_jamo)
+            score = executor.submit(calculate_pronunciation_score, standard_hangul, transcription)
 
             feedback_response = feedback_response.result()
             pronunciation_score = score.result()
@@ -73,6 +70,8 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
             #! <Pronunciation Score is 0.0>:
             if pronunciation_score <= 0.1:
                 raise HTTPException(status_code=422, detail="발음 평가 점수가 0점입니다.")
+
+ 
 
         status = feedback_response['status']
         feedback_count = len(feedback_response['pronunciation_feedbacks'])
@@ -89,7 +88,7 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
         "pronunciation_feedbacks": pronunciation_feedbacks,
         "feedback_image_names": feedback_image_names,
         "wrong_spellings": wrong_spellings,
-        "pronunciation_score": pronunciation_score,   
+        "pronunciation_score": pronunciation_score,
     }
 
 
@@ -221,18 +220,45 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
     }
 
 
-def calculate_pronunciation_score(original_jamo, user_jamo):
+def calculate_pronunciation_score(standard_hangul, user_hangul):
     """
     Levenshtein 거리 기반으로 유사도 점수를 계산하는 함수
     0 ~ 100 사이의 실수(소수점 아래 둘째자리) 반환
     """
-    matcher = SequenceMatcher(None, original_jamo, user_jamo)
+
+    standard_jamo_list = hangul2jamo_with_pronunciation_rules(standard_hangul)
+    user_jamo_list = hangul2jamo_with_pronunciation_rules(user_hangul)
+    
+    standard_jamo = ' '.join([''.join(word) for word in standard_jamo_list])
+    user_jamo = ' '.join([''.join(word) for word in user_jamo_list])
+
+    matcher = SequenceMatcher(None, standard_jamo, user_jamo)
     
     match_ratio = matcher.ratio()
     
     pronunciation_score = round(match_ratio*100, 2)
     
     return pronunciation_score
+
+
+def compare_word_count(sentence1: str, sentence2: str) -> bool:
+    """
+    두 한글 문장의 단어 개수가 같은지 판단하는 함수
+    """
+    import re
+    
+    # 한글을 제외한 모든 기호 삭제
+    sentence1 = re.sub(r'[^가-힣\s]', '', sentence1)
+    sentence2 = re.sub(r'[^가-힣\s]', '', sentence2)
+    
+    words1 = sentence1.split()
+    words2 = sentence2.split()
+    
+    return len(words1) == len(words2)
+
+
+
+
 
 
 

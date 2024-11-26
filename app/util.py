@@ -14,6 +14,7 @@ class FeedbackStatus:
     NO_SPEECH = 3               # 말이 없음
     WRONG_SENTENCE = 4          # 다른 문장 발음
     NOT_IMPLEMENTED = 5         # 아직 구현 안됨
+    WRONG_WORD_COUNT = 6        # 단어 개수 다름
 
 
 def convert_any_to_wav(audio_data: BytesIO, filename) -> BytesIO:
