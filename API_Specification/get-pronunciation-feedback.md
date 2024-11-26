@@ -56,6 +56,7 @@ Content-Type: multipart/form-data
 - **status** (`int`):
   - 1 : 정확한 발음. 피드백 & 입모양 사진 없음.
   - 2 : 발음에 틀린 부분 있음. 피드백 & 입모양 사진 있음.
+  - 6 : 단어 개수가 틀림. 피드백 & 입모양 사진 있고, **word_index 무시하면 됨.**
 
 - **transcription** (`String`):
   - 사용자의 발화를 발음 그대로 전사한 한글 텍스트. **<span style="color: red">(발음 법칙 적용)</span>**

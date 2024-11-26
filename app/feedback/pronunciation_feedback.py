@@ -55,25 +55,34 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
     if transcription == '1':
     #! <Wrong Sentence>: 사용자가 다른 문장을 말한 경우
         status = FeedbackStatus.WRONG_SENTENCE        
-    # elif compare_word_count(standard_hangul, transcription) is False:
-    #     #! <Wrong Word Count>: 표준 문장과 전사한 문장의 단어 개수가 다른 경우
-    #     pass
     else:        
         #! <Pronunciation Feedback>: 사용자의 발음을 분석하여 피드백 생성
-        with ThreadPoolExecutor() as executor:
-            feedback_response = executor.submit(get_pregenerated_pronunciation_feedback, standard_hangul, transcription)
-            score = executor.submit(calculate_pronunciation_score, standard_hangul, transcription)
 
-            feedback_response = feedback_response.result()
-            pronunciation_score = score.result()
-            
-            #! <Pronunciation Score is 0.0>:
-            if pronunciation_score <= 0.1:
-                raise HTTPException(status_code=422, detail="발음 평가 점수가 0점입니다.")
+        if compare_word_count(standard_hangul, transcription) is False:
+            #! <Wrong Word Count>: 표준 문장과 전사한 문장의 단어 개수가 다른 경우
+            standard_hangul_for_feedback = standard_hangul.replace(" ", "")
+            transcription_for_feedback = transcription.replace(" ", "")
+            status = FeedbackStatus.WRONG_WORD_COUNT
+        else:
+            standard_hangul_for_feedback = standard_hangul
+            transcription_for_feedback = transcription
 
- 
+        feedback_response = get_pregenerated_pronunciation_feedback(standard_hangul_for_feedback, transcription_for_feedback)
 
-        status = feedback_response['status']
+        if feedback_response['status'] is FeedbackStatus.PRONUNCIATION_SUCCESS:
+            status = feedback_response['status']
+            pronunciation_score = 100.0
+        elif status is FeedbackStatus.WRONG_WORD_COUNT:
+            status = FeedbackStatus.WRONG_WORD_COUNT
+            pronunciation_score = calculate_pronunciation_score(standard_hangul, transcription)
+        else:
+            status = feedback_response['status']
+            pronunciation_score = calculate_pronunciation_score(standard_hangul, transcription)
+
+        #! <Pronunciation Score is 0.0>:
+        if pronunciation_score <= 0.1:
+            raise HTTPException(status_code=422, detail="발음 평가 점수가 0점입니다.")
+
         feedback_count = len(feedback_response['pronunciation_feedbacks'])
         word_indexes = feedback_response['word_indexes']
         pronunciation_feedbacks = feedback_response['pronunciation_feedbacks']
@@ -151,6 +160,8 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
         #! 틀린 부분이 1개 이상이면 피드백 생성        
         for error in errors:
             word_id, jamo_type, tag, standard_jamo_list, user_jamo_list = error
+
+            logger.info(f"Error: {word_id}, {jamo_type}, {tag}, {standard_jamo_list}, {user_jamo_list}")
             
             #! 문장에 없는 음소를 발음한 경우 (구현완료)
             if tag == 'insert':
