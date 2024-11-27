@@ -247,41 +247,48 @@ def give_intonation_feedback(
     return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
     
 
-#! <MFA: 개발중>
-from app.feedback.intonation.intonation_graph_generator import plot_intonation_graph
-from app.feedback.intonation.pitch import get_time_and_pitch
-from app.feedback.intonation.mfa import get_mfa_alignment_result_from_file
-import random
+# #! <MFA: 개발중>
+# from app.feedback.intonation.intonation_graph_generator import plot_intonation_graph
+# from app.feedback.intonation.pitch import get_time_and_pitch
 
-#! 억양 교정 기능에서 문장 Align된 높낮이 그래프 이미지 생성.
-#! MFA Alignment를 사전에 수행하고, intonation/mfa_results에 TextGrid 파일 저장한 상태에서 호출 가능.
-@app.post("/intonation-feedback-test")
-def give_intonation_feedback_test(
-    audio: UploadFile = File(...),
-    sentence: str = Form(...),
-    sentence_number: str = Form(...)
-):
-    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-    audio_data = BytesIO(audio.file.read())
-    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+# #! 억양 교정 기능에서 문장 Align된 높낮이 그래프 이미지 생성.
+# #! MFA Alignment를 사전에 수행하고, intonation/mfa_results에 TextGrid 파일 저장한 상태에서 호출 가능.
+# @app.post("/intonation-feedback-test")
+# def give_intonation_feedback_test(
+#     audio: UploadFile = File(...),
+#     sentence_number: str = Form(...)
+# ):
+#     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
+#     audio_data = BytesIO(audio.file.read())
+#     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
-    #! Pitch 데이터 추출
-    time_resampled, pitch_resampled = get_time_and_pitch(wav_audio_data)
+#     #! Pitch 데이터 추출
+#     time_resampled, pitch_resampled = get_time_and_pitch(wav_audio_data)
     
-    #! MFA 결과 파일에서 단어 정보 추출
-    words_time_info = get_mfa_alignment_result_from_file(sentence_number)
-    
-    #! 그래프 이미지 생성
-    plot_intonation_graph(words_time_info, time_resampled, pitch_resampled, sentence_number)
+#     #! 그래프 이미지 생성
+#     plot_intonation_graph(time_resampled, pitch_resampled)
       
-    return {"message": "success"}
+#     return {"message": "success"}
 
 
 
 
 
 
-    
+from mfa.mfa import align_mfa
+
+"""
+MFA 실행 함수
+'/workspace/mfa/source'에 같은 이름의 오디오 파일과 텍스트 파일을 넣는다.
+execute-mfa API를 호출한다.
+!주의: 한 번 mfa를 실행하고, 다시 실행하면 이미 mfa를 수행했다고 인식하여 또 실행하지 않는다.
+! 따라서 매번 폴더의 이름을 바꿔줘야 한다.
+"""
+@app.get("/execute-mfa")
+def execute_mfa():
+    FOLDER_NAME = "/workspace/mfa/source"
+    align_mfa(FOLDER_NAME)
+
 
 
 # """

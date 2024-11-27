@@ -16,5 +16,6 @@ regex
 python-multipart
 
 # praat-parselmouth
+# apt-get update && apt-get install -y fonts-nanum
 # textgrid
 # fastdtw 안 쓸 수도 있음
