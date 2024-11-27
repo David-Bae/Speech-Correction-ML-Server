@@ -247,32 +247,33 @@ def give_intonation_feedback(
     return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
     
 
-from intonation.main import generate_intonation_feedback_image
-import os
+#! <MFA: 개발중>
+from app.feedback.intonation.intonation_graph_generator import plot_intonation_graph
+from app.feedback.intonation.pitch import get_time_and_pitch
+from app.feedback.intonation.mfa import get_mfa_alignment_result_from_file
+import random
 
+#! 억양 교정 기능에서 문장 Align된 높낮이 그래프 이미지 생성.
+#! MFA Alignment를 사전에 수행하고, intonation/mfa_results에 TextGrid 파일 저장한 상태에서 호출 가능.
 @app.post("/intonation-feedback-test")
 def give_intonation_feedback_test(
     audio: UploadFile = File(...),
-    text: str = Form(...)
+    sentence: str = Form(...),
+    sentence_number: str = Form(...)
 ):
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-
-    generate_intonation_feedback_image(wav_audio_data, text)
-
-
-    # audio_file_path = f"/workspace/test/{text}.wav"
-    # with open(audio_file_path, "wb") as f:
-    #     f.write(wav_audio_data.getvalue())
-
-    # from_text_file_path = f"/workspace/app/feedback/intonation_sentences/{text}.txt"
-    # to_text_file_path = f"/workspace/test/{text}.txt"
     
-    # with open(from_text_file_path, 'r') as from_file:
-    #     with open(to_text_file_path, 'w') as to_file:
-    #         to_file.write(from_file.read())
+    #! Pitch 데이터 추출
+    time_resampled, pitch_resampled = get_time_and_pitch(wav_audio_data)
     
+    #! MFA 결과 파일에서 단어 정보 추출
+    words_time_info = get_mfa_alignment_result_from_file(sentence_number)
+    
+    #! 그래프 이미지 생성
+    plot_intonation_graph(words_time_info, time_resampled, pitch_resampled, sentence_number)
+      
     return {"message": "success"}
 
 

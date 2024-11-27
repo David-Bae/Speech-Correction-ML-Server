@@ -14,3 +14,7 @@ uvicorn
 pydub
 regex
 python-multipart
+
+# praat-parselmouth
+# textgrid
+# fastdtw 안 쓸 수도 있음

@@ -12,9 +12,9 @@ RUN apt-get update && \
 # Python 및 FastAPI 의존성 설치
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# COPY environment.yml .
-# RUN conda env update --name base --file environment.yml
 
+# conda base 환경 비활성화
+RUN echo "conda deactivate" >> ~/.bashrc
 
 # 한국어 음향 모델 및 발음 사전 다운로드
 RUN mfa model download acoustic korean_mfa && \
