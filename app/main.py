@@ -137,118 +137,127 @@ def pronunciation_asr_gpt(
     return {"Result": transcription}
 
 
-#! <Intonation Feedback: 개발중>
-@app.post("/get-intonation-feedback")
-def give_intonation_feedback(
-    audio: UploadFile = File(...),
-    text: str = Form(...)
-):
-    #* <반환값>
-    status = FeedbackStatus.PRONUNCIATION_SUCCESS    
-    feedback_count = 0
-    word_indexes = []
-    intonation_feedbacks = []
-    intonation_score = 0.0
-    feedback_image = None
+# #! <Intonation Feedback: 개발중>
+# @app.post("/get-intonation-feedback")
+# def give_intonation_feedback(
+#     audio: UploadFile = File(...),
+#     text: str = Form(...)
+# ):
+#     #* <반환값>
+#     status = FeedbackStatus.PRONUNCIATION_SUCCESS
+#     intonation_feedback = ""
+#     intonation_score = 0.0
+#     feedback_image = None
     
-    #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-    audio_data = BytesIO(audio.file.read())
-    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+#     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
+#     audio_data = BytesIO(audio.file.read())
+#     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
     
 
-    #! <NO_SPEECH>: 아무 말도 하지 않은 경우
-    wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
-    if is_not_speaking(wav_audio_copy):
-        raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
+#     #! <NO_SPEECH>: 아무 말도 하지 않은 경우
+#     wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
+#     if is_not_speaking(wav_audio_copy):
+#         raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
 
-    #! <Intonation Feedback>
-    intonation_feedback = get_intonation_feedback(wav_audio_data)
+#     #! <Intonation Feedback>
+#     intonation_feedback = get_intonation_feedback(wav_audio_data)
     
-    status = intonation_feedback['status']
-    feedback_count = intonation_feedback['feedback_count']
-    word_indexes = intonation_feedback['word_indexes']
-    intonation_feedbacks = intonation_feedback['intonation_feedbacks']
-    intonation_score = intonation_feedback['intonation_score']
-    feedback_image = intonation_feedback['feedback_image'] #! feedback_image의 자료형은 Image
+#     status = intonation_feedback['status']
+#     intonation_feedback = intonation_feedback['intonation_feedback']
+#     intonation_score = intonation_feedback['intonation_score']
+#     feedback_image = intonation_feedback['feedback_image'] #! feedback_image의 자료형은 Image
 
-    if feedback_image is None:
-        logger.error("2. give_intonation_feedback: Feedback image is None")
-    else:
-        logger.info("2. give_intonation_feedback: Feedback image is not None")
+
+
+
+
+
     
-    feedback_image_binary = convert_Image_to_BytesIO(feedback_image) #! 멀티파트로 전송하기 위해 binary로 변환
+#     feedback_image_binary = convert_Image_to_BytesIO(feedback_image) #! 멀티파트로 전송하기 위해 binary로 변환
     
-    if feedback_image_binary is None:
-        logger.error("5. give_intonation_feedback: Feedback image binary is None")
-    else:
-        logger.info("5. give_intonation_feedback: Feedback image binary is not None")
+#     parts = {
+#         "status": status,
+#         "feedback_image": (feedback_image_binary, feedback_image_binary, "image/png")
+#     }
+
+#     from app.util import get_multipart_form_data
+#     multipart_response = get_multipart_form_data(**parts)
+
+
+
 
     ########################################################################################################
-    #! <Multi-part/form-data>    
-    #* 고유한 boundary 설정
-    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+    # #! <Multi-part/form-data>    
+    # #* 고유한 boundary 설정
+    # boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
 
-    #* multipart 응답 바디를 바이너리로 초기화
-    multipart_body = b""
+    # #* multipart 응답 바디를 바이너리로 초기화
+    # multipart_body = b""
     
-    #* Multipart파트 추가를 위한 헬퍼 함수 정의    
-    def add_text_part(name, content):
-        nonlocal multipart_body
-        part = (
-            f'--{boundary}\r\n'
-            f'Content-Disposition: form-data; name="{name}"\r\n'
-            f'Content-Type: text/plain; charset=utf-8\r\n\r\n'
-            f'{content}\r\n'
-        ).encode('utf-8')
-        multipart_body += part
+    # #* Multipart파트 추가를 위한 헬퍼 함수 정의    
+    # def add_text_part(name, content):
+    #     nonlocal multipart_body
+    #     part = (
+    #         f'--{boundary}\r\n'
+    #         f'Content-Disposition: form-data; name="{name}"\r\n'
+    #         f'Content-Type: text/plain; charset=utf-8\r\n\r\n'
+    #         f'{content}\r\n'
+    #     ).encode('utf-8')
+    #     multipart_body += part
 
-    def add_file_part(name, filename, content, content_type):
-        nonlocal multipart_body
-        if content is None:  # 이미지 데이터가 없으면 "null"을 텍스트로 추가
-            add_text_part(name, "null")
-        else:
-            part_header = (
-                f'--{boundary}\r\n'
-                f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
-                f'Content-Type: {content_type}\r\n\r\n'
-            ).encode('utf-8')
-            multipart_body += part_header
-            multipart_body += content  # 이미지 바이너리 데이터 추가
-            multipart_body += b'\r\n'
+    # def add_file_part(name, filename, content, content_type):
+    #     nonlocal multipart_body
+    #     if content is None:  # 이미지 데이터가 없으면 "null"을 텍스트로 추가
+    #         add_text_part(name, "null")
+    #     else:
+    #         part_header = (
+    #             f'--{boundary}\r\n'
+    #             f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
+    #             f'Content-Type: {content_type}\r\n\r\n'
+    #         ).encode('utf-8')
+    #         multipart_body += part_header
+    #         multipart_body += content  # 이미지 바이너리 데이터 추가
+    #         multipart_body += b'\r\n'
 
     
-    # 텍스트 파트 추가
-    add_text_part('status', status)
-    add_text_part('feedback_count', str(feedback_count))
-    add_text_part('word_indexes', ','.join(map(str, word_indexes)))
-    add_text_part('intonation_feedbacks', ','.join(intonation_feedbacks))
-    add_text_part('intonation_score', str(intonation_score))
+    # # 텍스트 파트 추가
+    # add_text_part('status', status)
+    # add_text_part('feedback_count', str(feedback_count))
+    # add_text_part('word_indexes', ','.join(map(str, word_indexes)))
+    # add_text_part('intonation_feedbacks', ','.join(intonation_feedbacks))
+    # add_text_part('intonation_score', str(intonation_score))
     
-    #! 이미지 파트 추가 feedback_image의 자료형은 BytesIO
-    feedback_image_bin_value = feedback_image_binary.getvalue()
+    # #! 이미지 파트 추가 feedback_image의 자료형은 BytesIO
+    # feedback_image_bin_value = feedback_image_binary.getvalue()
 
-    if feedback_image_bin_value is None:
-        logger.error("6. give_intonation_feedback: Feedback image binary value is None")
-    else:
-        logger.info("6. give_intonation_feedback: Feedback image binary value is not None")
+    # if feedback_image_bin_value is None:
+    #     logger.error("6. give_intonation_feedback: Feedback image binary value is None")
+    # else:
+    #     logger.info("6. give_intonation_feedback: Feedback image binary value is not None")
 
-    add_file_part('feedback_image', 'feedback_image.png', feedback_image_bin_value, 'image/png')
+    # add_file_part('feedback_image', 'feedback_image.png', feedback_image_bin_value, 'image/png')
 
-    # 마지막 boundary 추가
-    multipart_body += f'--{boundary}--\r\n'.encode('utf-8')
+    # # 마지막 boundary 추가
+    # multipart_body += f'--{boundary}--\r\n'.encode('utf-8')
 
-    # 응답 헤더 설정
-    headers = {
-        'Content-Type': f'multipart/form-data; boundary={boundary}'
-    }
+    # # 응답 헤더 설정
+    # headers = {
+    #     'Content-Type': f'multipart/form-data; boundary={boundary}'
+    # }
 
-    # 응답 반환
-    return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
+    # # 응답 반환
+    # return Response(content=multipart_body, media_type=f'multipart/form-data; boundary={boundary}', headers=headers)
     
+
+
+
+
+
 
 #! <개발중: 음성 받아서 그래프 이미지 생성까지>
 from app.feedback.intonation.intonation_graph_generator import plot_intonation_graph
 from app.feedback.intonation.pitch import get_time_and_pitch
+from app.util import get_multipart_form_data
 
 #! 억양 교정 기능에서 문장 Align된 높낮이 그래프 이미지 생성.
 #! MFA Alignment를 사전에 수행하고, intonation/mfa_results에 TextGrid 파일 저장한 상태에서 호출 가능.
@@ -259,14 +268,20 @@ def generate_intonation_image(
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
     audio_data = BytesIO(audio.file.read())
     wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-    
+
     #! Pitch 데이터 추출
     time_resampled, pitch_resampled = get_time_and_pitch(wav_audio_data)
-    
+
     #! 그래프 이미지 생성
-    plot_intonation_graph(time_resampled, pitch_resampled)
-      
-    return {"message": "success"}
+    image_binary = plot_intonation_graph(time_resampled, pitch_resampled)
+
+    parts = {
+        "feedback_image": ("feedback_image.jpg", image_binary, "image/jpeg"),
+    }
+
+    multipart_response = get_multipart_form_data(**parts)
+
+    return multipart_response
 
 
 
