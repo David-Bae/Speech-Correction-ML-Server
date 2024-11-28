@@ -10,43 +10,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#! Pitch 추출
-def extract_pitch(audio_data, time_step=0.01, pitch_floor=75, pitch_ceiling=600):
-    sound = parselmouth.Sound(audio_data)
-    pitch = sound.to_pitch(time_step=time_step, pitch_floor=pitch_floor, pitch_ceiling=pitch_ceiling)
-    pitch_values = pitch.selected_array['frequency']
-    time_stamps = pitch.xs()
-    pitch_values[pitch_values == 0] = np.nan
-    return time_stamps, pitch_values
 
-#! Pitch Interpolation
-def interpolate_pitch(pitch_values):
-    nans, x = np.isnan(pitch_values), lambda z: z.nonzero()[0]
-    pitch_values[nans] = np.interp(x(nans), x(~nans), pitch_values[~nans])
-    return pitch_values
-
-#! Pitch Normalization
-def normalize_pitch(pitch_values):
-    mean = np.mean(pitch_values)
-    std = np.std(pitch_values)
-    normalized_pitch = (pitch_values - mean) / std
-    return normalized_pitch
-
-#! Pitch Resampling
-def resample_pitch(time_stamps, pitch_values, num_samples=100):
-    f = interp1d(time_stamps, pitch_values, kind='linear')
-    new_time = np.linspace(time_stamps[0], time_stamps[-1], num_samples)
-    new_pitch = f(new_time)
-    return new_time, new_pitch
-
-#! Feedback Generation
-def generate_feedback(distance, threshold=30):
-    if distance < threshold:
-        return "The intonation is correct!"
-    else:
-        return "Improve the intonation in some sections."
-
-#! BytesIO to Sound
+#! BytesIO to Sound (1)
 def bytesio_to_sound(audio_data: BytesIO):
     """
     BytesIO 객체를 parselmouth의 Sound 객체로 변환하는 함수
@@ -58,7 +23,36 @@ def bytesio_to_sound(audio_data: BytesIO):
     return sound
 
 
-#! Pitch Smoothing
+#! Pitch 추출 (2)
+def extract_pitch(audio_data, time_step=0.01, pitch_floor=75, pitch_ceiling=600):
+    sound = parselmouth.Sound(audio_data)
+    pitch = sound.to_pitch(time_step=time_step, pitch_floor=pitch_floor, pitch_ceiling=pitch_ceiling)
+    pitch_values = pitch.selected_array['frequency']
+    time_stamps = pitch.xs()
+    pitch_values[pitch_values == 0] = np.nan
+    return time_stamps, pitch_values
+
+#! Pitch Interpolation (3)
+def interpolate_pitch(pitch_values):
+    nans, x = np.isnan(pitch_values), lambda z: z.nonzero()[0]
+    pitch_values[nans] = np.interp(x(nans), x(~nans), pitch_values[~nans])
+    return pitch_values
+
+#! Pitch Normalization (4)
+def normalize_pitch(pitch_values):
+    mean = np.mean(pitch_values)
+    std = np.std(pitch_values)
+    normalized_pitch = (pitch_values - mean) / std
+    return normalized_pitch
+
+#! Pitch Resampling (5)
+def resample_pitch(time_stamps, pitch_values, num_samples=100):
+    f = interp1d(time_stamps, pitch_values, kind='linear')
+    new_time = np.linspace(time_stamps[0], time_stamps[-1], num_samples)
+    new_pitch = f(new_time)
+    return new_time, new_pitch
+
+#! Pitch Smoothing (6) - 그래프를 부드럽게 만들기 위해 사용
 def smooth_pitch(time_stamps, pitch_values, num_samples=500):
     x_new = np.linspace(time_stamps.min(), time_stamps.max(), num_samples)  # 더 많은 점 생성
     spl = make_interp_spline(time_stamps, pitch_values, k=3)  # B-spline
