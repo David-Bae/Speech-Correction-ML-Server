@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def get_intonation_feedback(audio_data):
+def get_intonation_feedback(audio_data, sentence_code):
     
     status = FeedbackStatus.PRONUNCIATION_SUCCESS
     feedback_text = ""

@@ -160,7 +160,10 @@ def give_intonation_feedback(
         raise HTTPException(status_code=422, detail="목소리를 인식하지 못했습니다.")
 
     #! <Intonation Feedback>
-    intonation_feedback = get_intonation_feedback(wav_audio_data)
+    """
+    개발중
+    """
+    intonation_feedback = get_intonation_feedback(wav_audio_data, sentence_code)
     
     status = intonation_feedback['status']
     intonation_score = intonation_feedback['intonation_score']

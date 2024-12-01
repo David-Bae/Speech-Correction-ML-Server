@@ -22,15 +22,3 @@ def plot_intonation_graph(time_resampled, pitch_resampled):
     buffer.seek(0)
 
     return buffer
-
-# def plot_intonation_graph_and_save(time_resampled, pitch_resampled, directory):
-#     plt.clf()
-    
-#     # # 축 눈금 제거
-#     plt.xticks([])
-#     plt.yticks([])
-    
-#     plt.plot(time_resampled, pitch_resampled, linewidth=5, color=plot_config['color'])    
-
-#     save_file_path = f"{directory}/test.jpg"
-#     plt.savefig(save_file_path, bbox_inches='tight', pad_inches=0)

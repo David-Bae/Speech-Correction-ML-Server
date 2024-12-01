@@ -16,4 +16,4 @@ regex
 python-multipart
 praat-parselmouth
 
-# fastdtw 안 쓸 수도 있음
+fastdtw
