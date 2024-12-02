@@ -1,4 +1,4 @@
-from app.util import FeedbackStatus
+from app.models import FeedbackStatus
 from app.feedback.intonation.pitch import get_time_and_pitch
 from app.feedback.intonation.intonation_graph_generator import plot_intonation_graph
 from app.feedback.openai_api import classify_sentence_type

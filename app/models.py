@@ -1,6 +1,15 @@
 from pydantic import BaseModel  # Pydantic에서 BaseModel을 가져옵니다
 from typing import List
 
+class FeedbackStatus:
+    PRONUNCIATION_SUCCESS = 1   # 틀린 부분 없음
+    FEEDBACK_PROVIDED = 2       # 피드백 생성
+    NO_SPEECH = 3               # 말이 없음
+    WRONG_SENTENCE = 4          # 다른 문장 발음
+    NOT_IMPLEMENTED = 5         # 아직 구현 안됨
+    WRONG_WORD_COUNT = 6        # 단어 개수 다름
+
+
 class PronunciationFeedbackResponse(BaseModel):
     """
     사용자의 발음(pronunciation)을 분석하여 틀린 부분을 교정하는 피드백을 반환하는 API의 응답 모델

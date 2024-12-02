@@ -1,7 +1,7 @@
 from app.feedback import openai_api
 from app.hangul2ipa.worker import hangul2ipa
 from difflib import SequenceMatcher
-from app.util import FeedbackStatus
+from app.models import FeedbackStatus
 from app.feedback.ipa_processing import compare_jamo_with_word_index, compare_jamo_respectively_with_word_index
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
