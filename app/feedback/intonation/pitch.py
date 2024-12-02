@@ -81,11 +81,6 @@ def get_time_and_pitch(audio_data: BytesIO):
 
     return (time_resampled, pitch_resampled)
 
-
-
-
-
-
 """
 Feedback 생성 함수
 """
@@ -115,35 +110,32 @@ def align_pitch_contours(ref_time, ref_pitch, user_time, user_pitch):
 
     return aligned_time, aligned_ref_pitch, aligned_user_pitch
 
+def error_to_score(error, max_error=6):
+    score = max(0, (1 - error / max_error) * 100)
+    return score
 
-def compare_pitch_contours(aligned_time, aligned_ref_pitch, aligned_user_pitch):
-    # 피치 차이 계산
-    pitch_difference = aligned_user_pitch - aligned_ref_pitch
 
-    # 끝부분에서의 피치 변화 추세 계산
-    end_section = int(len(aligned_time) * 0.7)
-    ref_trend = np.mean(np.diff(aligned_ref_pitch[end_section:]))
-    user_trend = np.mean(np.diff(aligned_user_pitch[end_section:]))
+def calculate_intonation_score(user_time, user_pitch, sentence_code):
+    """
+    억양 점수 계산 함수
+    """
+    time_ref, pitch_ref = load_pitch_data_from_file(sentence_code)
 
-    return pitch_difference, ref_trend, user_trend
+    aligned_time, aligned_ref_pitch, aligned_user_pitch = align_pitch_contours(time_ref, pitch_ref, user_time, user_pitch)
+    
+    # 오차 계산 (평균 절대 오차)
+    pitch_diff = aligned_ref_pitch - aligned_user_pitch
+    mae = np.mean(np.abs(pitch_diff))
+    
+    # 오차를 점수로 변환
+    max_error = 3  #! 표준화된 피치 값의 최대 차이로 설정
+    score = error_to_score(mae, max_error)
+    
+    return score
 
-def generate_feedback(pitch_difference, ref_trend, user_trend):
-    feedback = ""
-    threshold = 0.5  # 허용 가능한 편차의 임계값
 
-    # 전체 피치 편차 확인
-    if np.max(np.abs(pitch_difference)) > threshold:
-        feedback += "전체적인 피치 곡선이 레퍼런스와 상당히 다릅니다.\n"
 
-    # 발화 끝부분의 억양 확인
-    if ref_trend > 0 and user_trend <= 0:
-        feedback += "의문문의 억양을 위해 발화 끝부분에서 피치를 올려야 합니다.\n"
-    elif ref_trend < 0 and user_trend >= 0:
-        feedback += "평서문의 억양을 위해 발화 끝부분에서 피치를 내려야 합니다.\n"
-    else:
-        feedback += "억양이 레퍼런스와 잘 일치합니다.\n"
 
-    return feedback
 
 
 import json

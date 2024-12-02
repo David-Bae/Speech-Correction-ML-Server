@@ -32,8 +32,13 @@ incorrect_sentence_type_feedback_dict = {
 }
 
 
+from app.feedback.intonation.pitch import calculate_intonation_score
+
+
 def get_intonation_feedback(audio_data, sentence_code):
-    
+    """
+    억양 피드백 생성 함수
+    """
     status = FeedbackStatus.PRONUNCIATION_SUCCESS
     feedback_text = ""
     intonation_score = 0.0
@@ -43,13 +48,13 @@ def get_intonation_feedback(audio_data, sentence_code):
     
     def generate_feedback_image_and_score(audio_data):
         #* 사용자 음성에서 Pitch 데이터 추출
-        time_resampled, pitch_resampled = get_time_and_pitch(audio_data)
+        user_time, user_pitch = get_time_and_pitch(audio_data)
         
         #* 음성 높낮이 그래프 이미지 생성
-        feedback_image = plot_intonation_graph(time_resampled, pitch_resampled)
+        feedback_image = plot_intonation_graph(user_time, user_pitch)
         
-        #TODO 억양 점수 생성 개발중!!!
-        intonation_score = 77.3
+        #* 억양 점수 계산
+        intonation_score = calculate_intonation_score(user_time, user_pitch, sentence_code)
         
         return feedback_image, intonation_score
 
@@ -83,3 +88,11 @@ def get_intonation_feedback(audio_data, sentence_code):
         "feedback_text": feedback_text,
         "feedback_image": feedback_image,
     }
+    
+
+
+
+
+
+
+    
