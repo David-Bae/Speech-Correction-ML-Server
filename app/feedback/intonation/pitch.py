@@ -52,7 +52,7 @@ def normalize_pitch(pitch_values):
     return normalized_pitch
 
 
-#! Pitch Resampling (5)
+#! Pitch 100개로 Resampling (5)
 #* 시간과 음정 데이터를 원하는 개수의 샘플로 재샘플링(선형보간)하는 함수
 def resample_pitch(time_stamps, pitch_values, num_samples=100):
     f = interp1d(time_stamps, pitch_values, kind='linear')
@@ -60,25 +60,24 @@ def resample_pitch(time_stamps, pitch_values, num_samples=100):
     new_pitch = f(new_time)
     return new_time, new_pitch
 
-#! Pitch Smoothing (6) - 그래프를 부드럽게 만들기 위해 사용
-#* B-spline interpolation)을 사용하여 time_stamps과
-#* pitch_values의 그래프를 부드럽게 만드는 함수
-def smooth_pitch(time_stamps, pitch_values, num_samples=500):
-    x_new = np.linspace(time_stamps.min(), time_stamps.max(), num_samples)  # 더 많은 점 생성
-    spl = make_interp_spline(time_stamps, pitch_values, k=3)  # B-spline
-    pitch_smooth = spl(x_new)
+# #! Pitch Smoothing (Deprecated) - 그래프를 부드럽게 만들기 위해 사용 - 위 함수랑 겹쳐서 사용 안함
+# #* B-spline interpolation)을 사용하여 time_stamps과
+# #* pitch_values의 그래프를 부드럽게 만드는 함수
+# def smooth_pitch(time_stamps, pitch_values, num_samples=500):
+#     x_new = np.linspace(time_stamps.min(), time_stamps.max(), num_samples)  # 더 많은 점 생성
+#     spl = make_interp_spline(time_stamps, pitch_values, k=3)  # B-spline
+#     pitch_smooth = spl(x_new)
 
-    return x_new, pitch_smooth
+#     return x_new, pitch_smooth
 
 
 #! <가장 중요한 함수>
-def get_time_and_pitch(audio_data: BytesIO, num_samples=500):
+def get_time_and_pitch(audio_data: BytesIO):
     sound = bytesio_to_sound(audio_data)
     time, pitch = extract_pitch(sound)
     pitch = interpolate_pitch(pitch)
     pitch_norm = normalize_pitch(pitch)
     time_resampled, pitch_resampled = resample_pitch(time, pitch_norm)
-    time_resampled, pitch_resampled = smooth_pitch(time_resampled, pitch_resampled, num_samples)
 
     return (time_resampled, pitch_resampled)
 
@@ -153,7 +152,15 @@ import os
 PITCH_DATA_FILE_PATH = "/workspace/app/feedback/intonation/pitch_data.json"
 AUDIO_FILE_PATH = "/workspace/app/feedback/intonation/audio/"
 
-def save_pitch_data_to_json(sentence_key, time_resampled, pitch_resampled):
+def save_pitch_data_to_json(sentence_code):
+    audio_file_path = os.path.join(AUDIO_FILE_PATH, f"{sentence_code}.wav")
+    
+    with open(audio_file_path, "rb") as f:
+        audio_file = BytesIO(f.read())
+    
+    #! Pitch 데이터 추출
+    time_user, pitch_user = get_time_and_pitch(audio_file)
+    
     # JSON 파일 읽기
     try:
         with open(PITCH_DATA_FILE_PATH, 'r') as file:
@@ -163,45 +170,36 @@ def save_pitch_data_to_json(sentence_key, time_resampled, pitch_resampled):
         data = {}
     
     # 새로운 문장 데이터 추가
-    data[sentence_key] = {
-        "time": time_resampled.tolist(),
-        "pitch": pitch_resampled.tolist()
+    data[sentence_code] = {
+        "time": time_user.tolist(),
+        "pitch": pitch_user.tolist()
     }
     
     # 수정된 데이터를 파일에 저장
     with open(PITCH_DATA_FILE_PATH, 'w') as file:
         json.dump(data, file, indent=4)
-    print(f"Added data for '{sentence_key}' to {PITCH_DATA_FILE_PATH}")
+    print(f"Added data for '{sentence_code}' to {PITCH_DATA_FILE_PATH}")
 
 
-def load_pitch_data_from_file(sentence_key):
+def load_pitch_data_from_file(sentence_code):
     try:
         with open(PITCH_DATA_FILE_PATH, "r") as file:
             data = json.load(file)
     except Exception as e:
         return None
     
-    time = np.array(data[sentence_key]["time"])
-    pitch = np.array(data[sentence_key]["pitch"])
+    time = np.array(data[sentence_code]["time"])
+    pitch = np.array(data[sentence_code]["pitch"])
     
     return (time, pitch)
 
-SENTENCE_CODE_LIST = ["0_0", "0_1", "0_2", "1_0", "1_1", "1_2"]
-
 
 if __name__ == "__main__":
-    for sentence_code in SENTENCE_CODE_LIST:
-
-        audio_file_path = os.path.join(AUDIO_FILE_PATH, f"{sentence_code}.wav")
-
-        with open(audio_file_path, "rb") as f:
-            audio_file = BytesIO(f.read())
-        
-        #! Pitch 데이터 추출
-        time_user, pitch_user = get_time_and_pitch(audio_file)
-        
-        save_pitch_data_to_json(sentence_code, time_user, pitch_user)
-    
+    for sentence_type in range(4):
+        for sentence_number in range(10):
+            sentence_code = f"{sentence_type}_{sentence_number}"
+            
+            save_pitch_data_to_json(sentence_code)
     
     
     # time_ref, pitch_ref = load_pitch_data_from_file(ref_sentence_code)
