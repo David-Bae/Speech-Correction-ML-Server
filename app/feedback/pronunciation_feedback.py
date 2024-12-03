@@ -106,10 +106,6 @@ def get_pronunciation_feedback(audio_data, standard_hangul):
 1. 피드백 문장 생성 방법 변경. (gpt 생성 -> 미리 생성된 피드백 테이블 사용)
 """
 
-IPA2KO = pd.read_csv('/workspace/app/feedback/table/ipa2ko.csv')
-MO = list(IPA2KO['Korean'][32:])
-JA = list(IPA2KO['Korean'][:32])
-
 import json
 JAMO_METADATA = json.load(open('/workspace/app/feedback/table/jamo_metadata.json'))
 JA = JAMO_METADATA['ja']
@@ -188,12 +184,12 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
                 
             elif tag == 'replace':
                 for standard_jamo, user_jamo in zip(standard_jamo_list, user_jamo_list):
-                    print(standard_jamo, user_jamo)
+                    feedback = f"'{standard_jamo}'소리가 '{user_jamo}'처럼 들려요. '{standard_jamo}'소리로 발음해 볼까요? "
 
                     #! 모음 -> 모음 (구현완료)
                     if jamo_type == 'mo':
                         combination = f"{user_jamo}_{standard_jamo}"
-                        feedback = MO_PREGENERATED_FEEDBACK[MO_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+                        feedback += MO_PREGENERATED_FEEDBACK[MO_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
                         feedback_image_name = f"{combination}.jpg"
                         wrong_spelling = standard_jamo
 
@@ -203,10 +199,10 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
 
                         #* 혼동하기 쉬운 자음 조합은 GPT로 생성된 피드백 사용.
                         if combination in ENABLE_JA_COMBINATIONS:
-                            feedback = JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
+                            feedback += JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == combination]["feedback"].values[0]
                         #* 그 외 자음은 from, to 비교하지 않고, to 자음 발음 방법을 피드백으로 사용.
                         else:
-                            feedback = JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
+                            feedback += JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
 
                         feedback_image_name = f"{combination}.jpg"
                         wrong_spelling = standard_jamo
