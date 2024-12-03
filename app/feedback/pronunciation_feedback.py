@@ -166,7 +166,7 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
             #! 문장에 없는 음소를 발음한 경우 (구현완료)
             if tag == 'insert':
                 for user_jamo in user_jamo_list:
-                    feedback = f"문장에 포함되지 않은 '{user_jamo}'를 발음하셨습니다. '{user_jamo}' 소리를 빼고 다시 발음해 보세요."
+                    feedback = f"'{user_jamo}' 소리가 들어갔어요. 이 소리를 빼고 다시 발음해 볼까요?"
                     feedback_image_name = "None.jpg"
                     wrong_spelling = user_jamo
                     
@@ -175,7 +175,7 @@ def get_pregenerated_pronunciation_feedback(standard_hangul, user_hangul):
             #! 문장에 있는 음소를 발음하지 않은 경우 (구현완료)
             elif tag == 'delete':
                 for standard_jamo in standard_jamo_list:
-                    feedback = f"{standard_jamo}를 발음하지 않았어요. "
+                    feedback = f"'{standard_jamo}' 소리가 빠졌어요. 이 소리를 넣어서 다시 발음해 볼까요? '{standard_jamo}' 소리를 발음할 때는, "
                     if standard_jamo in JA:
                         feedback += JA_PREGENERATED_FEEDBACK[JA_PREGENERATED_FEEDBACK["combination"] == standard_jamo]["feedback"].values[0]
                     else:
