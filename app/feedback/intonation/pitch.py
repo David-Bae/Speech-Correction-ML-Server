@@ -60,17 +60,6 @@ def resample_pitch(time_stamps, pitch_values, num_samples=100):
     new_pitch = f(new_time)
     return new_time, new_pitch
 
-# #! Pitch Smoothing (Deprecated) - 그래프를 부드럽게 만들기 위해 사용 - 위 함수랑 겹쳐서 사용 안함
-# #* B-spline interpolation)을 사용하여 time_stamps과
-# #* pitch_values의 그래프를 부드럽게 만드는 함수
-# def smooth_pitch(time_stamps, pitch_values, num_samples=500):
-#     x_new = np.linspace(time_stamps.min(), time_stamps.max(), num_samples)  # 더 많은 점 생성
-#     spl = make_interp_spline(time_stamps, pitch_values, k=3)  # B-spline
-#     pitch_smooth = spl(x_new)
-
-#     return x_new, pitch_smooth
-
-
 #! <가장 중요한 함수>
 def get_time_and_pitch(audio_data: BytesIO):
     sound = bytesio_to_sound(audio_data)

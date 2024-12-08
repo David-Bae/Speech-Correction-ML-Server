@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from io import BytesIO
 
 #* working directory: /workspace
-from app.utils.audio_image import convert_any_to_wav, is_not_speaking
+from app.utils.audio_image import convert_any_to_wav, is_not_speaking, convert_3gpp_to_wav_bytesio
 from app.models import FeedbackStatus
 from app.feedback.intonation_feedback import get_intonation_feedback
 from app.utils.response import get_multipart_form_data
@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-#! <Intonation Feedback: 개발중>
+#! <Intonation Feedback>
 @router.post("/get-intonation-feedback")
 def give_intonation_feedback(
     audio: UploadFile = File(...),
     sentence_code: str = Form(...)
-):
+):    
     #* <반환값>
     status = FeedbackStatus.PRONUNCIATION_SUCCESS
     intonation_feedback = ""
@@ -29,8 +29,7 @@ def give_intonation_feedback(
     feedback_image = None
     
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-    audio_data = BytesIO(audio.file.read())
-    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
+    wav_audio_data = convert_any_to_wav(audio)
     
     #! <NO_SPEECH>: 아무 말도 하지 않은 경우
     wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
@@ -55,6 +54,7 @@ def give_intonation_feedback(
     multipart_response = get_multipart_form_data(**parts)
 
     return multipart_response
+
 
 
 #! <문장 유형 분류 API: Test용>

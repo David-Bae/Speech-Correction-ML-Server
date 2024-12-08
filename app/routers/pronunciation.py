@@ -38,9 +38,7 @@ async def give_pronunciation_feedback(
     
     
     #* 다양한 format의 audio file을 wav format의 BytesIO로 변환
-    audio_data = BytesIO(audio.file.read())
-    wav_audio_data = convert_any_to_wav(audio_data, audio.filename)
-    
+    wav_audio_data = convert_any_to_wav(audio)
 
     #! <NO_SPEECH>: 아무 말도 하지 않은 경우
     wav_audio_copy = BytesIO(wav_audio_data.getvalue()) # librosa에서 audio_data를 변형시킴. 따라서 copy 해야 함.
